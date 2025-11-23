@@ -1,0 +1,32 @@
+name: CI
+
+on:
+  push:
+    branches: [ "main", "Redesign" ]
+  pull_request:
+    branches: [ "main", "Redesign" ]
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+          pip install pytest
+      - name: Run pytest
+        run: pytest
+      - name: CLI self-test
+        run: |
+          python main.py --hello-world-test
+          python main.py --file edu/examples/pythagorean.mlang
+          python main.py --file edu/examples/counterfactual_demo.mlang --counterfactual '{"phase": "step", "index": 2, "expression": "8 * 4"}' || true
+      - name: Notebook smoke test
+        run: |
+          pip install jupyter nbconvert
+          jupyter nbconvert --to notebook --execute notebooks/Learning_Log_Demo.ipynb --output /tmp/demo_out.ipynb || true

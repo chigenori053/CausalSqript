@@ -1,0 +1,6 @@
+id: lesson_01_arithmetic
+title: "Basic Arithmetic Steps"
+level: "beginner"
+examples:
+  - file: "edu/examples/pythagorean.mlang"
+    description: "Pythagorean DSL v2.5 program with prepare/counterfactual."

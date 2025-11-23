@@ -1,0 +1,26 @@
+[
+  {
+    "problem": "(3 + 5) * 4",
+    "previous": "8 * 4",
+    "candidate": "32",
+    "label": "exact"
+  },
+  {
+    "problem": "(3 + 5) * 4",
+    "previous": "8 * 4",
+    "candidate": "30",
+    "label": "approx_eq"
+  },
+  {
+    "problem": "(x + 1) * (x + 2)",
+    "previous": "x^2 + 3*x + 2",
+    "candidate": "x^2 + 2*x + 1",
+    "label": "analogous"
+  },
+  {
+    "problem": "(3 + 5) * 4",
+    "previous": "8 * 4",
+    "candidate": "3",
+    "label": "contradict"
+  }
+]

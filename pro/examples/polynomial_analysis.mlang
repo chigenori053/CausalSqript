@@ -1,0 +1,29 @@
+meta:
+    id: pro_poly_counterfactual
+    topic: research-polynomial
+config:
+    causal: true
+    normalize: true
+mode: causal
+
+prepare:
+    - observed_x = 3
+
+problem: (observed_x + 1) * (observed_x + 2)
+
+step:
+    before: (observed_x + 1) * (observed_x + 2)
+    after: observed_x^2 + 3*observed_x + 2
+    note: "Expand to compare with observed samples"
+
+step:
+    before: observed_x^2 + 3*observed_x + 2
+    after: (observed_x + 1) * (observed_x + 2)
+    note: "Refactor to confirm canonical form"
+
+end: (observed_x + 1) * (observed_x + 2)
+
+counterfactual:
+    assume:
+        observed_x: 4
+    expect: (observed_x + 1) * (observed_x + 2)

@@ -1,0 +1,42 @@
+meta:
+    id: edu_poly_suite
+    topic: polynomial_basics
+config:
+    causal: false
+    normalize: true
+mode: strict
+
+prepare:
+    - summary = "Addition / Subtraction / Multiplication / Division"
+
+# --- Addition ---
+problem: (x + 1) + (x + 2)
+step:
+    before: (x + 1) + (x + 2)
+    after: 2*x + 3
+    note: "Combine like terms to collect x"
+end: 2*x + 3
+
+# --- Subtraction ---
+problem: (x^2 + 3*x + 2) - (x + 2)
+step:
+    before: (x^2 + 3*x + 2) - (x + 2)
+    after: x^2 + 2*x
+    note: "Cancel constants, then merge x terms"
+end: x^2 + 2*x
+
+# --- Multiplication ---
+problem: (x + y) * (x - y)
+step:
+    before: (x + y) * (x - y)
+    after: x^2 - y^2
+    note: "Difference of squares pattern"
+end: x^2 - y^2
+
+# --- Division ---
+problem: (2*x*y) / 2
+step:
+    before: (2*x*y) / 2
+    after: x*y
+    note: "Cancel the constant factor"
+end: x*y

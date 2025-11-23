@@ -1,0 +1,522 @@
+"""Core Runtime for MathLang."""
+
+from __future__ import annotations
+
+from fractions import Fraction
+from typing import Any, Dict, Optional
+
+from .evaluator import Engine
+from .computation_engine import ComputationEngine
+from .validation_engine import ValidationEngine
+from .hint_engine import HintEngine
+from .exercise_spec import ExerciseSpec
+from .learning_logger import LearningLogger
+from .knowledge_registry import KnowledgeRegistry
+from .function_analysis import FunctionAnalyzer
+from .stats_engine import StatsEngine
+from .trig_engine import TrigHelper
+from .calculus_engine import CalculusEngine
+from .linear_algebra_engine import LinearAlgebraEngine
+from core.errors import CausalScriptError, InvalidStepError, MissingProblemError
+
+_EQUATION_SAMPLE_ASSIGNMENTS = [
+    {"x": -2, "y": 1, "z": 3, "a": 1},
+    {"x": 0, "y": 0, "z": 0, "a": 2, "b": -1},
+    {"x": 1, "y": 2, "z": -1, "b": 3, "c": 4},
+    {"a": 2, "b": 5, "c": -3},
+    {},
+]
+
+
+class CoreRuntime(Engine):
+    """
+    Orchestrates the execution of MathLang programs using specialized engines.
+    
+    Integrates:
+    - ComputationEngine: For symbolic/numeric evaluation
+    - ValidationEngine: For answer checking
+    - HintEngine: For generating feedback
+    """
+
+    def __init__(
+        self,
+        computation_engine: ComputationEngine,
+        validation_engine: ValidationEngine,
+        hint_engine: HintEngine,
+        exercise_spec: Optional[ExerciseSpec] = None,
+        learning_logger: Optional[LearningLogger] = None,
+        knowledge_registry: Optional[KnowledgeRegistry] = None,
+    ):
+        """
+        Initialize the CoreRuntime.
+        
+        Args:
+            computation_engine: Engine for computation
+            validation_engine: Engine for validation
+            hint_engine: Engine for hints
+            exercise_spec: Optional specification for the current exercise
+            learning_logger: Optional logger for learning analytics
+        """
+        self.computation_engine = computation_engine
+        self.validation_engine = validation_engine
+        self.hint_engine = hint_engine
+        self.exercise_spec = exercise_spec
+        self.learning_logger = learning_logger or LearningLogger()
+        self.knowledge_registry = knowledge_registry
+        self.function_analyzer = FunctionAnalyzer(computation_engine)
+        self.stats_engine = StatsEngine()
+        self.trig_helper = TrigHelper()
+        self.calculus_engine = CalculusEngine(computation_engine)
+        self.linear_algebra = LinearAlgebraEngine()
+        
+        self._current_expr: str | None = None
+        self._context: Dict[str, Any] = {}
+        self._scenarios: Dict[str, Dict[str, Any]] = {}
+        self._equation_mode: bool = False
+
+    def _normalize_expression(self, expr: str) -> str:
+        """
+        Convert optional equation syntax (left = right) into an expression form.
+        """
+        expr = expr.strip()
+        if "=" not in expr:
+            return expr
+        left, _, right = expr.partition("=")
+        left = left.strip()
+        right = right.strip()
+        if not left or not right:
+            raise ValueError("Invalid equation format. Expected 'left = right'.")
+        return f"({left}) - ({right})"
+
+    def _expressions_equivalent_up_to_scalar(self, expr1: str, expr2: str) -> bool:
+        sym = self.computation_engine.symbolic_engine
+        ratio_expr = f"(({expr1})) / (({expr2}))"
+        if sym.has_sympy():
+            try:
+                ratio_internal = sym.to_internal(ratio_expr)
+                free_symbols = getattr(ratio_internal, "free_symbols", None)
+                if free_symbols is not None and len(free_symbols) == 0:
+                    return ratio_internal != 0
+            except Exception:
+                pass
+        simplified = sym.simplify(ratio_expr)
+        constant_value = self._try_constant_value(simplified)
+        if constant_value is not None:
+            return abs(constant_value) > 1e-12
+        return self._numeric_scalar_equiv(expr1, expr2)
+
+    def _try_constant_value(self, value: Any) -> float | None:
+        if isinstance(value, (int, float)):
+            return float(value)
+        if isinstance(value, str):
+            cleaned = value.strip()
+            if not cleaned:
+                return None
+            lowered = cleaned.lower()
+            if lowered in {"nan", "zoo", "oo"}:
+                return None
+            if any(ch.isalpha() for ch in cleaned):
+                return None
+            try:
+                return float(Fraction(cleaned))
+            except (ValueError, ZeroDivisionError):
+                try:
+                    return float(cleaned)
+                except ValueError:
+                    return None
+        return None
+
+    def _numeric_scalar_equiv(self, expr1: str, expr2: str) -> bool:
+        ratios: list[float] = []
+        for assignment in _EQUATION_SAMPLE_ASSIGNMENTS:
+            try:
+                val1 = self.computation_engine.numeric_eval(expr1, assignment)
+                val2 = self.computation_engine.numeric_eval(expr2, assignment)
+            except Exception:
+                continue
+            if isinstance(val1, dict) or isinstance(val2, dict):
+                continue
+            try:
+                val1_float = float(val1)
+                val2_float = float(val2)
+            except Exception:
+                continue
+            if abs(val2_float) < 1e-12:
+                continue
+            ratio = val1_float / val2_float
+            if abs(ratio) < 1e-12:
+                continue
+            ratios.append(ratio)
+            if len(ratios) > 1 and abs(ratio - ratios[0]) > 1e-6:
+                return False
+        return bool(ratios)
+
+    def set(self, expr: str) -> None:
+        """
+        Set the initial problem expression.
+        
+        Supports both expressions and equations:
+        - Expression: "x**2 + 2*x + 1"
+        - Equation: "2*x + 3 = 7" (converted internally to "2*x + 3 - (7)")
+        
+        Args:
+            expr: The problem expression or equation string
+        """
+        self._equation_mode = "=" in expr
+        self._current_expr = self._normalize_expression(expr)
+        
+    def set_variable(self, name: str, value: Any) -> None:
+        """
+        Set a variable in the execution context.
+        
+        Args:
+            name: Variable name
+            value: Variable value
+        """
+        self._context[name] = value
+        self.computation_engine.bind(name, value)
+
+    def add_scenario(self, name: str, context: Dict[str, Any]) -> None:
+        """
+        Add a scenario with a specific context.
+        
+        Args:
+            name: Scenario name
+            context: Variable assignments for this scenario
+        """
+        self._scenarios[name] = context
+
+    def evaluate(self, expr: str, context: Optional[Dict[str, Any]] = None) -> Any:
+        """
+        Evaluate an expression.
+        
+        Args:
+            expr: Expression to evaluate
+            context: Optional temporary context
+            
+        Returns:
+            Evaluation result
+        """
+        return self.computation_engine.numeric_eval(expr, context)
+
+    def check_step(self, expr: str) -> dict:
+        """
+        Check if a step is valid (equivalent to the previous expression).
+        
+        Args:
+            expr: The new expression for this step
+            
+        Returns:
+            Dictionary containing validation results and metadata
+        """
+        if self._current_expr is None:
+            raise MissingProblemError("Problem expression must be set before steps.")
+            
+        before = self._current_expr
+        after = self._normalize_expression(expr)
+        if "=" in expr:
+            self._equation_mode = True
+        
+        # Default validation (symbolic)
+        # Apply context if variables are bound
+        if self._context:
+            try:
+                before_eval = self.computation_engine.substitute(before, self._context)
+                after_eval = self.computation_engine.substitute(after, self._context)
+            except CausalScriptError as e:
+                before_eval = before
+                after_eval = after
+        else:
+            before_eval = before
+            after_eval = after
+        
+        is_valid_symbolic = self.computation_engine.symbolic_engine.is_equiv(before_eval, after_eval)
+        if not is_valid_symbolic and self._equation_mode:
+            is_valid_symbolic = self._expressions_equivalent_up_to_scalar(before_eval, after_eval)
+        
+        # Scenario validation
+        scenario_results = {}
+        is_valid_scenarios = True
+        if self._scenarios:
+            scenario_results = self.computation_engine.check_equivalence_in_scenarios(
+                before, after, self._scenarios
+            )
+            is_valid_scenarios = all(scenario_results.values())
+        
+        # Combine results
+        # If scenarios are present, they override symbolic check if symbolic check is ambiguous?
+        # Or should we require BOTH?
+        # Usually symbolic implies numeric, but numeric doesn't imply symbolic.
+        # However, if scenarios are explicitly defined, the user likely wants to verify against them.
+        # Let's say: valid if symbolic is valid OR (scenarios exist AND all scenarios are valid)
+        # Actually, if symbolic is valid, it should be valid everywhere.
+        # If symbolic fails (e.g. too complex), scenarios might pass.
+        # If scenarios fail, symbolic should definitely fail (unless scenarios are wrong).
+        
+        is_valid = is_valid_symbolic
+        if not is_valid and self._scenarios:
+            is_valid = is_valid_scenarios
+        
+        # If scenarios exist but some fail, it's definitely invalid even if symbolic says yes?
+        # No, symbolic is ground truth. If symbolic says yes, it's yes.
+        # But if symbolic says "I don't know" (which is_equiv might not do, it returns bool),
+        # we rely on scenarios.
+        # For now, let's trust symbolic if True. If False, check scenarios.
+        
+        result = {
+            "before": before,
+            "after": after,
+            "valid": is_valid,
+            "rule_id": None,
+            "details": {},
+        }
+
+        if is_valid and self.knowledge_registry:
+            rule_node = self.knowledge_registry.match(before, after)
+            if rule_node:
+                result["rule_id"] = rule_node.id
+                result["details"]["rule"] = rule_node.to_metadata()
+        
+        if self._scenarios:
+            result["details"]["scenarios"] = scenario_results
+        
+        if is_valid:
+            self._current_expr = after
+        else:
+            # Generate hint if invalid
+            # Use the previous expression as the target for the hint
+            hint = self.hint_engine.generate_hint(after, before)
+            result["details"]["hint"] = {
+                "message": hint.message,
+                "type": hint.hint_type
+            }
+                
+        return result
+
+    def analyze_function(self, expr: str, variable: str = "x") -> Dict[str, Any]:
+        """
+        Analyze a function for domain, range, intercepts, and behavior.
+
+        Args:
+            expr: Function expression to analyze.
+            variable: Variable name to treat as the independent variable.
+
+        Returns:
+            Dictionary representation of FunctionAnalysisResult.
+        """
+        result = self.function_analyzer.analyze(expr, variable)
+        return {
+            "expression": result.expression,
+            "variable": result.variable,
+            "domain": result.domain,
+            "range": result.range,
+            "intercepts": result.intercepts,
+            "behavior": result.behavior,
+            "samples": result.samples,
+        }
+
+    def plot_function(
+        self,
+        expr: str,
+        variable: str = "x",
+        start: float | None = None,
+        end: float | None = None,
+        num_points: int = 100,
+    ) -> Dict[str, Any]:
+        """
+        Generate plot data (and a matplotlib figure when available) for a function.
+        """
+        return self.function_analyzer.plot(expr, variable, start, end, num_points)
+
+    def describe_dataset(self, data: list[float]) -> Dict[str, Any]:
+        """Return descriptive statistics for the provided sequence."""
+        return self.stats_engine.describe(data)
+
+    def compute_probability(
+        self,
+        distribution: str,
+        value: float,
+        *,
+        kind: str = "continuous",
+        params: Optional[Dict[str, Any]] = None,
+    ) -> Dict[str, Any]:
+        """Evaluate pdf/cdf for the specified distribution."""
+        result = self.stats_engine.distribution_info(
+            distribution, value, kind=kind, params=params
+        )
+        return {
+            "distribution": result.distribution,
+            "value": result.value,
+            "params": result.params,
+            "pdf": result.pdf,
+            "cdf": result.cdf,
+        }
+
+    def visualize_dataset(self, data: list[float], bins: int = 10) -> Dict[str, Any]:
+        """Build histogram data and optional matplotlib figure."""
+        return self.stats_engine.visualize(data, bins=bins)
+
+    # ------------------------------------------------------------------
+    # Trigonometry helpers
+    # ------------------------------------------------------------------
+
+    def trig_unit_circle(self, angle: float, unit: str = "degrees") -> Dict[str, float]:
+        return self.trig_helper.unit_circle_point(angle, unit)
+
+    def trig_standard_angle(self, angle: int) -> Dict[str, float] | None:
+        return self.trig_helper.standard_angle(angle)
+
+    def trig_evaluate(self, func: str, angle: float, unit: str = "radians") -> float:
+        return self.trig_helper.evaluate(func, angle, unit)
+
+    def trig_apply_identity(
+        self,
+        identity: str,
+        angle: float,
+        unit: str = "radians",
+        other_angle: float | None = None,
+        other_unit: str | None = None,
+    ) -> float:
+        return self.trig_helper.apply_identity(
+            identity,
+            angle,
+            unit,
+            other_angle=other_angle,
+            other_unit=other_unit,
+        )
+
+    # ------------------------------------------------------------------
+    # Calculus helpers
+    # ------------------------------------------------------------------
+
+    def calc_derivative(self, expr: str, variable: str = "x", at: float | None = None) -> Dict[str, Any]:
+        return self.calculus_engine.derivative(expr, variable, at=at)
+
+    def calc_integral(
+        self,
+        expr: str,
+        variable: str = "x",
+        lower: float | None = None,
+        upper: float | None = None,
+    ) -> Dict[str, Any]:
+        return self.calculus_engine.integral(expr, variable, lower=lower, upper=upper)
+
+    def calc_slope_of_tangent(self, expr: str, variable: str, at: float) -> float | None:
+        return self.calculus_engine.slope_of_tangent(expr, variable, at)
+
+    def calc_area_under_curve(self, expr: str, variable: str, lower: float, upper: float) -> float | None:
+        return self.calculus_engine.area_under_curve(expr, variable, lower, upper)
+
+    # ------------------------------------------------------------------
+    # Linear algebra helpers
+    # ------------------------------------------------------------------
+
+    def vector_add(self, v1: list[float], v2: list[float]) -> list[float]:
+        return self.linear_algebra.vector_add(v1, v2)
+
+    def vector_dot(self, v1: list[float], v2: list[float]) -> float:
+        return self.linear_algebra.dot(v1, v2)
+
+    def vector_cross(self, v1: list[float], v2: list[float]) -> list[float]:
+        return self.linear_algebra.cross(v1, v2)
+
+    def matrix_add(self, m1: list[list[float]], m2: list[list[float]]) -> list[list[float]]:
+        return self.linear_algebra.matrix_add(m1, m2)
+
+    def matrix_multiply(self, m1: list[list[float]], m2: list[list[float]]) -> list[list[float]]:
+        return self.linear_algebra.matrix_multiply(m1, m2)
+
+    def matrix_transpose(self, matrix: list[list[float]]) -> list[list[float]]:
+        return self.linear_algebra.matrix_transpose(matrix)
+
+    def matrix_determinant(self, matrix: list[list[float]]) -> float:
+        return self.linear_algebra.determinant(matrix)
+
+    def solve_linear_system(self, coefficients: list[list[float]], constants: list[float]) -> list[float]:
+        return self.linear_algebra.solve_linear_system(coefficients, constants)
+
+    def matrix_eigenvalues(self, matrix: list[list[float]]) -> list[float]:
+        return self.linear_algebra.eigenvalues(matrix)
+
+    def matrix_eigenvectors(self, matrix: list[list[float]]) -> list[list[float]]:
+        return self.linear_algebra.eigenvectors(matrix)
+
+    def finalize(self, expr: str | None) -> dict:
+        """
+        Finalize the problem and validate the answer.
+        
+        Args:
+            expr: The final answer expression (or None to use current)
+            
+        Returns:
+            Dictionary containing validation results
+        """
+        if self._current_expr is None:
+            raise MissingProblemError("Cannot finalize before a problem is declared.")
+            
+        final_expr = expr if expr is not None else self._current_expr
+        if expr is not None:
+            final_expr = self._normalize_expression(expr)
+        else:
+            final_expr = self._current_expr
+        
+        # If we have an exercise spec, use ValidationEngine
+        if self.exercise_spec:
+            validation_result = self.validation_engine.check_answer(
+                final_expr, self.exercise_spec
+            )
+            
+            result = {
+                "before": self._current_expr,
+                "after": final_expr,
+                "valid": validation_result.is_correct,
+                "rule_id": None,
+                "details": {
+                    "message": validation_result.message,
+                    "validation_details": validation_result.details
+                }
+            }
+            
+            # If incorrect, generate hint
+            if not validation_result.is_correct:
+                hint = self.hint_engine.generate_hint_for_spec(final_expr, self.exercise_spec)
+                result["details"]["hint"] = {
+                    "message": hint.message,
+                    "type": hint.hint_type
+                }
+                
+            return result
+            
+        else:
+            # Fallback to simple equivalence check if no spec
+            # This behaves like the old SymbolicEvaluationEngine
+            # But wait, what is the target? 
+            # In finalize(expr), 'expr' is the user's final answer.
+            # But usually finalize checks against a target.
+            # In the old engine, finalize(expr) checked if current_expr == expr (if expr provided)
+            # OR it just returned the current state.
+            
+            # Let's look at Evaluator logic.
+            # Evaluator calls finalize(node.expr).
+            # If node.expr is provided (e.g. "End: x = 5"), it checks if current state matches it.
+            # If node.expr is NOT provided (e.g. "End: done"), it assumes current state is final.
+            
+            # Without ExerciseSpec, we can only check if the provided expr is equivalent to current state
+            if expr is not None:
+                normalized_expr = self._normalize_expression(expr)
+                is_valid = self.computation_engine.symbolic_engine.is_equiv(self._current_expr, normalized_expr)
+                return {
+                    "before": self._current_expr,
+                    "after": normalized_expr,
+                    "valid": is_valid,
+                    "rule_id": None,
+                    "details": {}
+                }
+            else:
+                return {
+                    "before": self._current_expr,
+                    "after": self._current_expr,
+                    "valid": True,
+                    "rule_id": None,
+                    "details": {}
+                }

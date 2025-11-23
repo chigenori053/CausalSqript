@@ -1,0 +1,6 @@
+{
+  "id": "causal_basic",
+  "description": "Run the polynomial causal example",
+  "file": "pro/examples/polynomial_analysis.mlang",
+  "mode": "symbolic"
+}

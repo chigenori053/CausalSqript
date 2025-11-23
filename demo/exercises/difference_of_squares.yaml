@@ -1,0 +1,12 @@
+id: "difference_of_squares"
+target_expression: "(x - 3)*(x + 3)"
+validation_mode: "canonical_form"
+canonical_form: "(x - 3)*(x + 3)"
+hint_rules:
+  "x**2 - 9": "Close! But the answer should be in factored form"
+  "x**2 + 9": "Check your signs - this should be x^2 - 9"
+  "(x - 3)**2": "This expands to x^2 - 6x + 9, not x^2 - 9"
+metadata:
+  difficulty: "medium"
+  topic: "factoring"
+  description: "Factor x^2 - 9"

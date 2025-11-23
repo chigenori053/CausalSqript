@@ -1,0 +1,19 @@
+[project]
+name = "causalscript"
+version = "0.1.0"
+description = "Add your description here"
+readme = "README.md"
+requires-python = ">=3.12,<3.13"
+dependencies = [
+    "sympy>=1.13",
+    "lark-parser>=0.12",
+    "streamlit>=1.38",
+    "jupyter>=1.0",
+    "pytest>=8.4.2",
+    "PyYAML>=6.0",
+]
+
+[tool.pytest.ini_options]
+pythonpath = [
+    ".",
+]

@@ -1,0 +1,22 @@
+{
+  "scenarios": {
+    "arithmetic": {
+      "description": "Core DSL sample that walks through the Pythagorean problem.",
+      "file": "edu/examples/pythagorean.mlang"
+    },
+    "counterfactual": {
+      "description": "Demonstrates counterfactual editing on the edu demo script.",
+      "file": "edu/examples/counterfactual_demo.mlang",
+      "counterfactual": {
+        "phase": "step",
+        "index": 2,
+        "expression": "8 * scale_factor"
+      }
+    },
+    "polynomial": {
+      "description": "Runs the polynomial arithmetic notebook example with the polynomial evaluator.",
+      "file": "edu/examples/polynomial_arithmetic.mlang",
+      "mode": "polynomial"
+    }
+  }
+}

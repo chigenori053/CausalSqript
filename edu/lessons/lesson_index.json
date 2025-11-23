@@ -1,0 +1,10 @@
+{
+  "lessons": [
+    {
+      "id": "lesson_01_arithmetic",
+      "title": "Basic Arithmetic Steps",
+      "level": "beginner",
+      "file": "edu/lessons/lesson_01_arithmetic.yaml"
+    }
+  ]
+}

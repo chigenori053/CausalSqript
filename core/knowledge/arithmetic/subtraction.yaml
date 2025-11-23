@@ -1,0 +1,6 @@
+- id: ARITH-SUB-001
+  domain: arithmetic
+  category: subtraction
+  pattern_before: "a - b"
+  pattern_after: "a + (-b)"
+  description: "減法を加法と負数に変換"

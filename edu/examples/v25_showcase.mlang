@@ -1,0 +1,31 @@
+meta:
+    id: edu_v25
+    topic: counterfactual demo
+
+config:
+    causal: true
+    fuzzy-threshold: 0.6
+mode: causal
+
+problem: (3 + 5) * 4
+
+prepare:
+    - a = 3 + 5
+    - b = a * 4
+
+step:
+    before: (3 + 5) * 4
+    after: 8 * 4
+    note: first simplify
+
+step:
+    before: 8 * 4
+    after: 32
+    note: multiply
+
+end: 32
+
+counterfactual:
+    assume:
+        a: 10
+    expect: a * 3 + 2

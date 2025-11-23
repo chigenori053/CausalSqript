@@ -1,0 +1,14 @@
+id: "quadratic_expansion"
+target_expression: "x**2 + 2*x + 1"
+validation_mode: "symbolic_equiv"
+intermediate_steps:
+  - "x*x + x + x + 1"
+  - "x**2 + x + x + 1"
+hint_rules:
+  "x**2 + 1": "Don't forget the middle term! Remember (a+b)^2 = a^2 + 2ab + b^2"
+  "x**2 + x + 1": "The coefficient of x should be 2, not 1"
+  "2*x + 1": "Where is the x^2 term?"
+metadata:
+  difficulty: "easy"
+  topic: "algebra"
+  description: "Expand (x + 1)^2"

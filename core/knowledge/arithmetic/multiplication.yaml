@@ -1,0 +1,20 @@
+- id: ARITH-MUL-001
+  domain: arithmetic
+  category: multiplication
+  pattern_before: "a * b"
+  pattern_after: "b * a"
+  description: "乗法の可換律"
+
+- id: ARITH-MUL-002
+  domain: arithmetic
+  category: multiplication
+  pattern_before: "(a * b) * c"
+  pattern_after: "a * (b * c)"
+  description: "乗法の結合法則"
+
+- id: ARITH-MUL-003
+  domain: arithmetic
+  category: multiplication
+  pattern_before: "a * 1"
+  pattern_after: "a"
+  description: "乗法の単位元"

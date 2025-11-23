@@ -1,0 +1,8 @@
+{
+  "scenarios": {
+    "basic": {
+      "description": "Default Pro scenario for causal analysis on the polynomial analysis example.",
+      "file": "pro/examples/polynomial_analysis.mlang"
+    }
+  }
+}
