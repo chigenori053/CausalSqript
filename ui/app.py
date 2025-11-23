@@ -5,6 +5,8 @@ CausalScript Streamlit UI.
 import streamlit as st
 import sys
 import os
+import json
+import time
 from pathlib import Path
 
 # Add project root to path
@@ -20,6 +22,9 @@ from core.parser import Parser
 from core.evaluator import Evaluator
 from core.learning_logger import LearningLogger
 from core.errors import CausalScriptError
+from core.fuzzy.judge import FuzzyJudge
+from core.fuzzy.encoder import ExpressionEncoder
+from core.fuzzy.metric import SimilarityMetric
 
 # Page Config
 st.set_page_config(
@@ -33,237 +38,297 @@ if "history" not in st.session_state:
     st.session_state.history = []
 if "logs" not in st.session_state:
     st.session_state.logs = []
+if "scenario_logs" not in st.session_state:
+    st.session_state.scenario_logs = []
+if "step_count" not in st.session_state:
+    st.session_state.step_count = 1
 
 # Initialize Engines (Cached)
 @st.cache_resource
 def get_engines():
     sym_engine = SymbolicEngine()
     comp_engine = ComputationEngine(sym_engine)
-    val_engine = ValidationEngine(comp_engine)
+    
+    # Initialize Fuzzy Judge
+    encoder = ExpressionEncoder()
+    metric = SimilarityMetric()
+    fuzzy_judge = FuzzyJudge(encoder, metric)
+    
+    val_engine = ValidationEngine(comp_engine, fuzzy_judge=fuzzy_judge)
     hint_engine = HintEngine(comp_engine)
     formatter = LaTeXFormatter(sym_engine)
     return comp_engine, val_engine, hint_engine, formatter
 
 comp_engine, val_engine, hint_engine, formatter = get_engines()
 
-# Layout
-main_col, log_col = st.columns([3, 1])
+# --- Helper Functions ---
+
+def render_card(title, latex_content, status, hint=None, corrected_form=None):
+    """Renders a result card."""
+    border_color = "#4CAF50" if status == "ok" else "#FF5252"
+    bg_color = "rgba(76, 175, 80, 0.1)" if status == "ok" else "rgba(255, 82, 82, 0.1)"
+    icon = "✅" if status == "ok" else "❌"
+    
+    st.markdown(
+        f"""
+        <div style="
+            border: 2px solid {border_color};
+            border-radius: 10px;
+            padding: 15px;
+            margin-bottom: 15px;
+            background-color: {bg_color};
+        ">
+            <div style="font-weight: bold; margin-bottom: 5px; color: {border_color};">
+                {icon} {title}
+            </div>
+        """,
+        unsafe_allow_html=True
+    )
+    
+    if latex_content:
+        st.latex(latex_content)
+        
+    if corrected_form:
+        st.markdown(
+            f"""
+            <div style="
+                margin-top: 10px;
+                padding: 10px;
+                background-color: rgba(33, 150, 243, 0.1);
+                border-radius: 5px;
+                border-left: 4px solid #2196F3;
+                color: #0D47A1;
+            ">
+                <strong>ℹ️ Corrected Form:</strong>
+            </div>
+            """,
+            unsafe_allow_html=True
+        )
+        st.latex(corrected_form)
+        
+    if status != "ok" and hint:
+        st.markdown(
+            f"""
+            <div style="
+                margin-top: 10px;
+                padding: 10px;
+                background-color: rgba(255, 255, 255, 0.5);
+                border-radius: 5px;
+                border-left: 4px solid #FFC107;
+                color: #856404;
+            ">
+                <strong>💡 Hint:</strong> {hint}
+            </div>
+            """,
+            unsafe_allow_html=True
+        )
+
+    st.markdown("</div>", unsafe_allow_html=True)
+
+# --- Layout ---
+
+main_col, side_col = st.columns([3, 1.5])
 
 with main_col:
     st.title("CausalScript Interface")
     
-    # Results Area (Top)
-    st.subheader("Results")
+    # --- Output Section (Top) ---
+    st.subheader("Evaluation Results")
     
     if st.session_state.history:
         last_entry = st.session_state.history[-1]
         
-        st.info(f"Input:\n{last_entry['input']}")
-        
         if last_entry.get("type") == "script":
-            st.markdown("### LaTeX Output")
             for step in last_entry.get("steps", []):
-                # Custom styling for invalid steps
-                if step['status'] != 'ok':
-                    hint_html = ""
-                    if 'hint' in step:
-                        hint_html = f'<p style="margin-top: 5px; color: #8B0000; font-style: italic;">Hint: {step["hint"]}</p>'
-                        
-                    st.markdown(
-                        f"""
-                        <div style="background-color: rgba(255, 0, 0, 0.3); padding: 10px; border-radius: 5px;">
-                            <p style="margin: 0; font-weight: bold; color: #8B0000;">Invalid Step</p>
-                            {hint_html}
-                        </div>
-                        """, 
-                        unsafe_allow_html=True
-                    )
+                title = step['phase'].capitalize()
+                if step['phase'] == 'step':
+                    pass
                 
-                if step['latex']:
-                    st.latex(step['latex'])
-                    
-                if step['status'] != 'ok':
-                     st.markdown("</div>", unsafe_allow_html=True) # Close div if we opened one? No, st.markdown is self-contained block usually.
-                     # Actually, st.latex renders in its own block. 
-                     # To wrap st.latex, we might need a container or just visual cue above/below.
-                     # Streamlit doesn't easily allow wrapping st.latex in a div via st.markdown.
-                     # Let's try a different approach: use st.container with border/background? 
-                     # Or just render the latex string inside the div using MathJax syntax if possible, 
-                     # but st.latex is better.
-                     # Alternative: Use a colored box *around* the latex.
-                     pass
-
-        elif last_entry.get("type") == "simple":
-            if 'latex' in last_entry:
-                st.markdown("### LaTeX Output")
-                st.latex(last_entry['latex'])
-            if 'result' in last_entry:
-                st.markdown("### Evaluation")
-                st.code(last_entry['result'])
-        
+                render_card(
+                    title=title,
+                    latex_content=step['latex'],
+                    status=step['status'],
+                    hint=step.get('hint'),
+                    corrected_form=step.get('corrected_form_latex')
+                )
+                
         elif last_entry.get("type") == "error":
-             st.error(f"Error: {last_entry['error']}")
-             
+            st.error(f"Error: {last_entry['error']}")
     else:
-        st.write("No calculations yet.")
+        st.info("Enter a problem and steps below to see results here.")
 
-    # Input Area (Bottom)
     st.divider()
+
+    # --- Input Section (Bottom) ---
     st.subheader("Input")
     
-    with st.form("calc_form"):
-        user_input = st.text_area("Enter Math Expression or CausalScript:", height=150, placeholder="e.g., x^2 + 2*x + 1\nOR\nproblem: (x - 2y)^2\nstep1: ...")
-        submitted = st.form_submit_button("Calculate")
-        
-        if submitted and user_input:
-            # Create fresh runtime and logger for each execution
-            logger = LearningLogger()
-            runtime = CoreRuntime(comp_engine, val_engine, hint_engine, learning_logger=logger)
+    tab_struct, tab_raw = st.tabs(["Structured Input", "Raw Script"])
+    
+    user_input = None
+    process_input = False
+
+    with tab_struct:
+        with st.form("structured_form"):
+            problem_input = st.text_input("Problem", placeholder="e.g., (x - 2y)^2")
             
-            try:
-                # Check if input is a script (contains keywords)
-                is_script = any(k in user_input for k in ["problem:", "step:", "end:"])
+            steps_input = st.text_area("Steps (One per line)", height=150, placeholder="x^2 - 4xy + 4y^2\n...")
+            
+            end_input = st.text_input("End (Final Answer)", placeholder="e.g., x^2 - 4xy + 4y^2")
+            
+            submitted_struct = st.form_submit_button("Evaluate")
+            
+            if submitted_struct:
+                # Construct script
+                script_lines = []
+                if problem_input:
+                    script_lines.append(f"problem: {problem_input}")
                 
-                if is_script:
-                    # Parse and Evaluate
-                    parser = Parser(user_input)
-                    program = parser.parse()
-                    evaluator = Evaluator(program, runtime, learning_logger=logger)
-                    success = evaluator.run()
-                    
-                    # Collect logs
-                    logs = logger.to_list()
-                    formatted_logs = []
-                    for record in logs:
-                        formatted_logs.append(f"{record['phase'].upper()}: {record.get('rendered', '')}")
-                        st.session_state.logs.append(f"{record['phase'].upper()}: {record.get('rendered', '')}")
-
-                    # Store structured history for rendering
-                    history_entry = {
-                        "input": user_input,
-                        "type": "script",
-                        "steps": [],
-                        "result": "\n".join(formatted_logs)
-                    }
-
-                    last_valid_expr = None
-                    for record in logs:
-                        if record['phase'] in ['problem', 'step', 'end']:
-                            current_expr = str(record['expression']) if record['expression'] else ""
+                if steps_input:
+                    for line in steps_input.split('\n'):
+                        if line.strip():
+                            script_lines.append(f"step: {line.strip()}")
                             
-                            step_data = {
-                                "latex": formatter.format_expression(current_expr) if current_expr else "",
-                                "status": record.get('status', 'ok'),
-                                "phase": record['phase']
-                            }
-                            
-                            if record['phase'] == 'problem':
-                                last_valid_expr = current_expr
-                            elif record['phase'] == 'step':
-                                if record.get('status') == 'ok':
-                                    last_valid_expr = current_expr
-                                elif last_valid_expr:
-                                    # Generate hint
-                                    try:
-                                        hint_res = hint_engine.generate_hint(current_expr, last_valid_expr)
-                                        step_data['hint'] = hint_res.message
-                                        step_data['hint_type'] = hint_res.hint_type
-                                    except Exception:
-                                        pass
-
-                            history_entry["steps"].append(step_data)
-
-                    st.session_state.history.append(history_entry)
-                    
-                else:
-                    # Simple Expression Mode
-                    latex = formatter.format_expression(user_input)
-                    result = comp_engine.simplify(user_input)
-                    
-                    log_entry = f"Processed: {user_input} -> {result}"
-                    st.session_state.logs.append(log_entry)
-                    
-                    st.session_state.history.append({
-                        "input": user_input,
-                        "type": "simple",
-                        "latex": latex,
-                        "result": result
-                    })
+                if end_input:
+                    script_lines.append(f"end: {end_input}")
                 
-                st.rerun()
-                
-            except Exception as e:
-                st.session_state.logs.append(f"Error: {str(e)}")
-                st.session_state.history.append({
-                    "input": user_input,
-                    "type": "error",
-                    "result": "Error",
-                    "error": str(e)
-                })
-                st.rerun()
+                user_input = "\n".join(script_lines)
+                process_input = True
 
-    # --- Testing Features ---
-    st.divider()
-    st.subheader("Experimental Features")
-    
-    tab1, tab2 = st.tabs(["Parallel Computation", "Hint Generation"])
-    
-    with tab1:
-        st.markdown("Test parallel evaluation of an expression across multiple scenarios.")
-        col1, col2 = st.columns(2)
-        with col1:
-            p_expr = st.text_input("Expression", value="x^2 + y")
-        with col2:
-            p_scenarios_str = st.text_area("Scenarios (JSON)", value='{"s1": {"x": 1, "y": 1}, "s2": {"x": 2, "y": 2}, "s3": {"x": 3, "y": 3}}')
-            
-        if st.button("Run Parallel Eval"):
-            try:
-                import json
-                import time
-                scenarios = json.loads(p_scenarios_str)
-                start_time = time.time()
-                results = comp_engine.evaluate_in_scenarios(p_expr, scenarios)
-                end_time = time.time()
-                
-                duration = end_time - start_time
-                st.success(f"Completed in {duration:.4f}s (Results sent to Logs)")
-                
-                # Log results
-                log_msg = f"Parallel Eval ({duration:.4f}s):\n{json.dumps(results, indent=2)}"
-                st.session_state.logs.append(log_msg)
-            except Exception as e:
-                st.error(f"Parallel Eval Error: {e}")
+    with tab_raw:
+        with st.form("raw_form"):
+            raw_input = st.text_area("Script", height=200, placeholder="problem: ...\nstep: ...\nend: ...")
+            submitted_raw = st.form_submit_button("Run Script")
+            if submitted_raw:
+                user_input = raw_input
+                process_input = True
 
-    with tab2:
-        st.markdown("Test hint generation for a user answer against a target.")
-        col1, col2 = st.columns(2)
-        with col1:
-            h_target = st.text_input("Target Expression", value="x^2 - y^2")
-        with col2:
-            h_user = st.text_input("User Expression", value="(x-y)^2")
-            
-        if st.button("Generate Hint"):
-            try:
-                hint_res = hint_engine.generate_hint(h_user, h_target)
-                st.info(f"Hint ({hint_res.hint_type}): {hint_res.message}")
-                if hint_res.details:
-                    st.json(hint_res.details)
-            except Exception as e:
-                st.error(f"Hint Error: {e}")
-
-with log_col:
-    st.subheader("System Logs")
-    
-    # Clear Logs Button
-    if st.button("Clear Logs"):
+    # Processing Logic
+    if process_input and user_input:
+        # Reset logs
         st.session_state.logs = []
-        st.rerun()
+        st.session_state.scenario_logs = []
+        
+        # We need to get a fresh logger but reuse engines
+        logger = LearningLogger()
+        # Re-instantiate runtime with the cached engines
+        runtime = CoreRuntime(comp_engine, val_engine, hint_engine, learning_logger=logger)
+        
+        try:
+            # 1. Parse and Evaluate (Main Flow)
+            parser = Parser(user_input)
+            program = parser.parse()
+            evaluator = Evaluator(program, runtime, learning_logger=logger)
+            success = evaluator.run()
+            
+            # Collect logs for "Automated Answering"
+            logs = logger.to_list()
+            for record in logs:
+                st.session_state.logs.append(f"[{record['phase'].upper()}] {record.get('rendered', '')} ({record.get('status', '')})")
+
+            # Build History Entry
+            history_entry = {
+                "input": user_input,
+                "type": "script",
+                "steps": []
+            }
+
+            last_valid_expr = None
+            for record in logs:
+                if record['phase'] in ['problem', 'step', 'end']:
+                    current_expr = str(record['expression']) if record['expression'] else ""
+                    
+                    step_data = {
+                        "latex": formatter.format_expression(current_expr) if current_expr else "",
+                        "status": record.get('status', 'ok'),
+                        "phase": record['phase']
+                    }
+                    
+                    # Check for corrected form in details (from FuzzyJudge)
+                    if 'meta' in record and record['meta'] and 'corrected_form' in record['meta']:
+                         cf = record['meta']['corrected_form']
+                         step_data['corrected_form_latex'] = formatter.format_expression(str(cf))
+                    
+                    if record['phase'] == 'problem':
+                        last_valid_expr = current_expr
+                    elif record['phase'] in ['step', 'end']:
+                        if record.get('status') == 'ok':
+                            last_valid_expr = current_expr
+                        elif last_valid_expr:
+                            # Generate hint (if not already in meta)
+                            if 'meta' in record and record['meta'] and 'hint' in record['meta']:
+                                step_data['hint'] = record['meta']['hint']['message']
+                            else:
+                                try:
+                                    hint_res = hint_engine.generate_hint(current_expr, last_valid_expr)
+                                    step_data['hint'] = hint_res.message
+                                except Exception:
+                                    pass
+
+                    history_entry["steps"].append(step_data)
+
+            st.session_state.history.append(history_entry)
+            
+            # 2. Parallel Computation (Scenario Logs)
+            problem_expr = None
+            for record in logs:
+                if record['phase'] == 'problem':
+                    problem_expr = str(record['expression'])
+                    break
+            
+            if problem_expr:
+                try:
+                    # Default scenarios for demo
+                    scenarios = {
+                        "Scenario A (x=1, y=1)": {"x": 1, "y": 1},
+                        "Scenario B (x=2, y=3)": {"x": 2, "y": 3},
+                        "Scenario C (x=0, y=5)": {"x": 0, "y": 5}
+                    }
+                    results = comp_engine.evaluate_in_scenarios(problem_expr, scenarios)
+                    st.session_state.scenario_logs.append(f"Evaluated '{problem_expr}' across {len(scenarios)} scenarios:")
+                    st.session_state.scenario_logs.append(json.dumps(results, indent=2))
+                except Exception as e:
+                    st.session_state.scenario_logs.append(f"Scenario Eval Error: {e}")
+
+            st.rerun()
+            
+        except Exception as e:
+            st.session_state.logs.append(f"Error: {str(e)}")
+            st.session_state.history.append({
+                "input": user_input,
+                "type": "error",
+                "error": str(e)
+            })
+            st.rerun()
+
+# --- Side Panel ---
+
+with side_col:
+    st.header("Logs & Analysis")
     
-    # Display Logs
-    log_container = st.container(height=500)
-    with log_container:
-        for log in reversed(st.session_state.logs):
-            if "Error" in log or "mistake" in log.lower() or "fatal" in log.lower():
-                st.error(log)
-            else:
+    # Tabbed Side Panel
+    tab_auto, tab_scenario = st.tabs(["Automated Answering", "Scenario Logs"])
+    
+    with tab_auto:
+        st.caption("Step-by-step calculation logs")
+        if st.button("Clear Auto Logs", key="clear_auto"):
+            st.session_state.logs = []
+            st.rerun()
+            
+        log_container = st.container(height=600)
+        with log_container:
+            for log in st.session_state.logs:
                 st.text(log)
+
+    with tab_scenario:
+        st.caption("Parallel computation results")
+        if st.button("Clear Scenario Logs", key="clear_scenario"):
+            st.session_state.scenario_logs = []
+            st.rerun()
+            
+        scen_container = st.container(height=600)
+        with scen_container:
+            for log in st.session_state.scenario_logs:
+                if log.startswith("{"):
+                    st.json(json.loads(log))
+                else:
+                    st.text(log)

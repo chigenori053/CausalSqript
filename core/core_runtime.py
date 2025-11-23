@@ -243,25 +243,30 @@ class CoreRuntime(Engine):
             )
             is_valid_scenarios = all(scenario_results.values())
         
-        # Combine results
-        # If scenarios are present, they override symbolic check if symbolic check is ambiguous?
-        # Or should we require BOTH?
-        # Usually symbolic implies numeric, but numeric doesn't imply symbolic.
-        # However, if scenarios are explicitly defined, the user likely wants to verify against them.
-        # Let's say: valid if symbolic is valid OR (scenarios exist AND all scenarios are valid)
-        # Actually, if symbolic is valid, it should be valid everywhere.
-        # If symbolic fails (e.g. too complex), scenarios might pass.
-        # If scenarios fail, symbolic should definitely fail (unless scenarios are wrong).
-        
         is_valid = is_valid_symbolic
         if not is_valid and self._scenarios:
             is_valid = is_valid_scenarios
-        
-        # If scenarios exist but some fail, it's definitely invalid even if symbolic says yes?
-        # No, symbolic is ground truth. If symbolic says yes, it's yes.
-        # But if symbolic says "I don't know" (which is_equiv might not do, it returns bool),
-        # we rely on scenarios.
-        # For now, let's trust symbolic if True. If False, check scenarios.
+
+        # Fuzzy Validation Fallback
+        fuzzy_result = None
+        if not is_valid and hasattr(self.validation_engine, 'fuzzy_judge') and self.validation_engine.fuzzy_judge:
+            try:
+                encoder = self.validation_engine.fuzzy_judge.encoder
+                # Use 'before' as a proxy for problem/previous since we are checking step validity
+                norm_before = encoder.normalize(before)
+                norm_after = encoder.normalize(after)
+                
+                fuzzy_result = self.validation_engine.fuzzy_judge.judge_step(
+                    problem_expr=norm_before,
+                    previous_expr=norm_before,
+                    candidate_expr=norm_after
+                )
+                
+                from core.fuzzy.types import FuzzyLabel
+                if fuzzy_result.label in [FuzzyLabel.EXACT, FuzzyLabel.EQUIVALENT, FuzzyLabel.APPROX_EQ, FuzzyLabel.ANALOGOUS]:
+                    is_valid = True
+            except Exception:
+                pass
         
         result = {
             "before": before,
@@ -279,7 +284,16 @@ class CoreRuntime(Engine):
         
         if self._scenarios:
             result["details"]["scenarios"] = scenario_results
-        
+            
+        if fuzzy_result:
+             result["details"]["fuzzy_label"] = fuzzy_result.label.value
+             result["details"]["fuzzy_score"] = fuzzy_result.score.combined_score
+             
+             if is_valid and not is_valid_symbolic:
+                 # If valid via fuzzy but not symbolic, suggest the 'before' state as the corrected form
+                 # or simply note that it was fuzzy matched.
+                 result["details"]["corrected_form"] = before
+
         if is_valid:
             self._current_expr = after
         else:
@@ -288,9 +302,10 @@ class CoreRuntime(Engine):
             hint = self.hint_engine.generate_hint(after, before)
             result["details"]["hint"] = {
                 "message": hint.message,
-                "type": hint.hint_type
+                "type": hint.hint_type,
+                "details": hint.details
             }
-                
+            
         return result
 
     def analyze_function(self, expr: str, variable: str = "x") -> Dict[str, Any]:

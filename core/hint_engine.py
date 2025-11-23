@@ -112,7 +112,15 @@ class HintEngine:
                         details={"offset": simplified_diff}
                     )
             except ValueError:
-                pass # Not a number
+                # Not a number, check if it's a simple term (Term Difference)
+                # If the difference is a simple monomial, it means they are off by that term.
+                # e.g. user = x^2 + y^2, target = x^2 + y^2 - 2xy -> diff = 2xy
+                
+                return HintResult(
+                    message=f"You might be missing or have an extra term: {simplified_diff}",
+                    hint_type="heuristic_term_difference",
+                    details={"diff": str(simplified_diff)}
+                )
                 
         except (InvalidExprError, EvaluationError):
             pass
