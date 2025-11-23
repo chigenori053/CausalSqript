@@ -37,6 +37,7 @@ class CausalScriptInputParser:
         tokens = CausalScriptInputParser.tokenize(text)
         tokens = CausalScriptInputParser.normalize_unicode(tokens)
         tokens = CausalScriptInputParser.normalize_power(tokens)
+        tokens = CausalScriptInputParser.expand_mixed_numbers(tokens)
         tokens = CausalScriptInputParser.split_concatenated_identifiers(tokens)
         tokens = CausalScriptInputParser.insert_implicit_multiplication(tokens)
         tokens = CausalScriptInputParser.normalize_functions(tokens)
@@ -105,6 +106,38 @@ class CausalScriptInputParser:
     @staticmethod
     def normalize_power(tokens: List[str]) -> List[str]:
         return ["**" if token == "^" else token for token in tokens]
+
+    @staticmethod
+    def expand_mixed_numbers(tokens: List[str]) -> List[str]:
+        """Convert mixed numbers like 1(3/4) or 1 3/4 into addition form."""
+        result: List[str] = []
+        i = 0
+        while i < len(tokens):
+            token = tokens[i]
+            if CausalScriptInputParser._is_integer(token):
+                if (
+                    i + 5 < len(tokens)
+                    and tokens[i + 1] == "("
+                    and CausalScriptInputParser._is_number(tokens[i + 2])
+                    and tokens[i + 3] == "/"
+                    and CausalScriptInputParser._is_number(tokens[i + 4])
+                    and tokens[i + 5] == ")"
+                ):
+                    result.extend(["(", token, "+", tokens[i + 2], "/", tokens[i + 4], ")"])
+                    i += 6
+                    continue
+                if (
+                    i + 3 < len(tokens)
+                    and CausalScriptInputParser._is_number(tokens[i + 1])
+                    and tokens[i + 2] == "/"
+                    and CausalScriptInputParser._is_number(tokens[i + 3])
+                ):
+                    result.extend(["(", token, "+", tokens[i + 1], "/", tokens[i + 3], ")"])
+                    i += 4
+                    continue
+            result.append(token)
+            i += 1
+        return result
 
     @staticmethod
     def split_concatenated_identifiers(tokens: List[str]) -> List[str]:
@@ -250,6 +283,10 @@ class CausalScriptInputParser:
     @staticmethod
     def _is_identifier(token: str) -> bool:
         return bool(re.fullmatch(r"[A-Za-z_][A-Za-z0-9_]*", token))
+
+    @staticmethod
+    def _is_integer(token: str) -> bool:
+        return bool(re.fullmatch(r"\d+", token))
 
     @staticmethod
     def _is_number(token: str) -> bool:

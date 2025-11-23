@@ -18,6 +18,12 @@ from core.input_parser import CausalScriptInputParser
         ("12x", "12*x"),
         # Test Case 5: Implicit multiplication between identifiers (sanity check)
         ("abc", "a*b*c"),
+        # Test Case 6: Mixed number with parentheses
+        ("1(7/15)", "(1 + 7/15)"),
+        # Test Case 7: Mixed number separated by space
+        ("1 7/15", "(1 + 7/15)"),
+        # Test Case 8: Mixed number inside expression
+        ("2 + 1(1/2)", "2 + (1 + 1/2)"),
     ],
 )
 def test_normalize_implicit_multiplication(input_expr: str, expected_output: str):
