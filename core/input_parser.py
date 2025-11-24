@@ -300,6 +300,11 @@ class CausalScriptInputParser:
     def _is_function_token(token: str) -> bool:
         return token in CausalScriptInputParser._FUNCTION_TOKENS
 
+    _KNOWN_UNITS = {
+        "cm", "mm", "km", "kg", "g", "mg", "m", "s", "h", "Hz", "N", "J", "W", "Pa",
+        "min", "hr", "deg", "rad", "liter", "L"
+    }
+
     @staticmethod
     def _should_split_identifier(token: str) -> bool:
         return (
@@ -308,4 +313,5 @@ class CausalScriptInputParser:
             and token.islower()
             and token not in CausalScriptInputParser._KNOWN_FUNCTIONS
             and token not in CausalScriptInputParser._KNOWN_CONSTANTS
+            and token not in CausalScriptInputParser._KNOWN_UNITS
         )

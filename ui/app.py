@@ -25,6 +25,7 @@ from core.errors import CausalScriptError
 from core.fuzzy.judge import FuzzyJudge
 from core.fuzzy.encoder import ExpressionEncoder
 from core.fuzzy.metric import SimilarityMetric
+from core.unit_engine import get_common_units
 
 # Page Config
 st.set_page_config(
@@ -57,6 +58,11 @@ def get_engines():
     val_engine = ValidationEngine(comp_engine, fuzzy_judge=fuzzy_judge)
     hint_engine = HintEngine(comp_engine)
     formatter = LaTeXFormatter(sym_engine)
+    
+    # Inject common units into context
+    for name, unit in get_common_units().items():
+        comp_engine.bind(name, unit)
+        
     return comp_engine, val_engine, hint_engine, formatter
 
 comp_engine, val_engine, hint_engine, formatter = get_engines()
@@ -181,15 +187,24 @@ with main_col:
                 # Construct script
                 script_lines = []
                 if problem_input:
-                    script_lines.append(f"problem: {problem_input}")
+                    if problem_input.strip().lower().startswith("problem:"):
+                        script_lines.append(problem_input)
+                    else:
+                        script_lines.append(f"problem: {problem_input}")
                 
                 if steps_input:
                     for line in steps_input.split('\n'):
                         if line.strip():
-                            script_lines.append(f"step: {line.strip()}")
+                            if line.strip().lower().startswith("step:"):
+                                script_lines.append(line.strip())
+                            else:
+                                script_lines.append(f"step: {line.strip()}")
                             
                 if end_input:
-                    script_lines.append(f"end: {end_input}")
+                    if end_input.strip().lower().startswith("end:"):
+                        script_lines.append(end_input)
+                    else:
+                        script_lines.append(f"end: {end_input}")
                 
                 user_input = "\n".join(script_lines)
                 process_input = True

@@ -278,3 +278,28 @@ _UNIT_DEFINITIONS: Dict[str, tuple[str, Fraction]] = {
     "kilogram": ("kilogram", Fraction(1)),
     "gram": ("kilogram", Fraction(1, 1000)),
 }
+
+
+def get_common_units() -> Dict[str, Any]:
+    """
+    Retrieve a dictionary of common units for context injection.
+    
+    Returns:
+        Dict mapping unit names (e.g., 'cm', 'kg') to SymPy unit objects.
+    """
+    if units is None:
+        return {}
+        
+    # List of common units to expose
+    # Must match core.input_parser.CausalScriptInputParser._KNOWN_UNITS
+    common_names = {
+        "cm", "mm", "km", "kg", "g", "mg", "m", "s", "h", "Hz", "N", "J", "W", "Pa",
+        "min", "hr", "deg", "rad", "liter", "L"
+    }
+    
+    unit_map = {}
+    for name in common_names:
+        if hasattr(units, name):
+            unit_map[name] = getattr(units, name)
+            
+    return unit_map

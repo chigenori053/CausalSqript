@@ -144,12 +144,20 @@ class Parser:
         return program
 
     def _parse_problem(self, content: str, number: int) -> ast.ProblemNode:
+        # Handle potential double prefixing (e.g. "problem: problem: ...")
+        if content.strip().lower().startswith("problem:"):
+            content = content.strip()[8:].strip()
+            
         expr = self._normalize_expr(content)
         if not expr:
             raise SyntaxError(f"Problem expression required on line {number}.")
         return ast.ProblemNode(expr=expr, line=number)
 
     def _parse_step_legacy(self, content: str, step_id: str | None, number: int) -> ast.StepNode:
+        # Handle potential double prefixing
+        if content.strip().lower().startswith("step:"):
+            content = content.strip()[5:].strip()
+
         expr = self._normalize_expr(content)
         if not expr:
             raise SyntaxError(f"Step expression required on line {number}.")
