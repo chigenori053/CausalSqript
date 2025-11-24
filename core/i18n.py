@@ -87,6 +87,24 @@ _TRANSLATIONS: Dict[str, Dict[str, str]] = {
         "cli.hello_conflict_polynomial": "--hello-world-test は --polynomial と同時に利用できません",
         "cli.polynomial_parse_error": "[多項式パースエラー] {error}",
         "cli.polynomial_error": "[多項式エラー] {error}",
+
+        "fuzzy.label.exact": "完全一致",
+        "fuzzy.label.equivalent": "数学的に同値",
+        "fuzzy.label.approx_eq": "近似的に一致",
+        "fuzzy.label.analogous": "類似の推論",
+        "fuzzy.label.contradict": "矛盾",
+        "fuzzy.label.unknown": "不明",
+        
+        "fuzzy.result": "曖昧判定: {label} (スコア: {score:.2f})",
+        "fuzzy.judge.detail": "スコア: {combined:.2f} (式: {expr:.2f}, ルール: {rule:.2f}, テキスト: {text:.2f})",
+        "fuzzy.reason.approx_eq": "式は近似していますが、厳密には一致しません。",
+        "fuzzy.reason.analogous": "構造は似ていますが、数値や変数が異なります。",
+
+        # Causal Analysis ----------------------------------------------------
+        "causal.analysis.header": "== 因果推論による分析 ==",
+        "causal.cause_steps": "確認すべきステップ: {steps}",
+        "causal.cause_rules": "関連するルール: {rules}",
+        "causal.fix_candidate": "修正候補: {node_id}",
     },
     "en": {
         # Lexer / Parser -----------------------------------------------------
@@ -167,6 +185,24 @@ _TRANSLATIONS: Dict[str, Dict[str, str]] = {
         "cli.hello_conflict_polynomial": "--hello-world-test cannot be combined with --polynomial",
         "cli.polynomial_parse_error": "[Polynomial Parse Error] {error}",
         "cli.polynomial_error": "[Polynomial Error] {error}",
+
+        "fuzzy.label.exact": "Exact Match",
+        "fuzzy.label.equivalent": "Mathematically Equivalent",
+        "fuzzy.label.approx_eq": "Approximately Equal",
+        "fuzzy.label.analogous": "Analogous Reasoning",
+        "fuzzy.label.contradict": "Contradiction",
+        "fuzzy.label.unknown": "Unknown",
+
+        "fuzzy.result": "Fuzzy Result: {label} (Score: {score:.2f})",
+        "fuzzy.judge.detail": "Score: {combined:.2f} (Expr: {expr:.2f}, Rule: {rule:.2f}, Text: {text:.2f})",
+        "fuzzy.reason.approx_eq": "The expression is approximate but not strictly exact.",
+        "fuzzy.reason.analogous": "The structure is similar, but values or variables differ.",
+
+        # Causal Analysis ----------------------------------------------------
+        "causal.analysis.header": "== Causal Analysis ==",
+        "causal.cause_steps": "Steps to check: {steps}",
+        "causal.cause_rules": "Related rules: {rules}",
+        "causal.fix_candidate": "Fix candidate: {node_id}",
     },
 }
 

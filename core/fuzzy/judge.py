@@ -8,6 +8,7 @@ from .config import FuzzyThresholdConfig
 from .encoder import ExpressionEncoder
 from .metric import SimilarityMetric
 from .types import FuzzyLabel, FuzzyResult, FuzzyScore, NormalizedExpr
+from ..i18n import get_language_pack
 
 
 def _clamp(value: float) -> float:
@@ -58,16 +59,49 @@ class FuzzyJudge:
         t = self.thresholds
         if combined >= t.exact:
             label = FuzzyLabel.EXACT
+            label_key = "fuzzy.label.exact"
         elif combined >= t.equivalent:
             label = FuzzyLabel.EQUIVALENT
+            label_key = "fuzzy.label.equivalent"
         elif combined >= t.approx_eq:
             label = FuzzyLabel.APPROX_EQ
+            label_key = "fuzzy.label.approx_eq"
         elif combined >= t.analogous:
             label = FuzzyLabel.ANALOGOUS
+            label_key = "fuzzy.label.analogous"
         elif combined <= t.contradict:
             label = FuzzyLabel.CONTRADICT
+            label_key = "fuzzy.label.contradict"
         else:
             label = FuzzyLabel.UNKNOWN
+            label_key = "fuzzy.label.unknown"
+
+        i18n = get_language_pack()
+        
+        # Main result summary
+        label_text = i18n.text(label_key)
+        main_msg = i18n.text("fuzzy.result", label=label_text, score=combined)
+        
+        # Specific reason if applicable
+        reason_msg = ""
+        if label == FuzzyLabel.APPROX_EQ:
+            reason_msg = i18n.text("fuzzy.reason.approx_eq")
+        elif label == FuzzyLabel.ANALOGOUS:
+            reason_msg = i18n.text("fuzzy.reason.analogous")
+            
+        # Detail score breakdown
+        detail_msg = i18n.text(
+            "fuzzy.judge.detail",
+            combined=combined,
+            expr=expr_sim,
+            rule=rule_sim,
+            text=text_sim
+        )
+
+        full_reason = main_msg
+        if reason_msg:
+            full_reason += f" | {reason_msg}"
+        full_reason += f" | {detail_msg}"
 
         return FuzzyResult(
             label=label,
@@ -77,7 +111,7 @@ class FuzzyJudge:
                 text_similarity=text_sim,
                 combined_score=combined,
             ),
-            reason=f"Label={label.value}, score={combined:.3f}",
+            reason=full_reason,
             debug={
                 "problem_raw": problem_expr["raw"],
                 "previous_raw": previous_expr["raw"],

@@ -6,6 +6,7 @@ from typing import Any, Dict, List
 
 from .causal_engine import CausalEngine
 from .causal_types import CausalNodeType
+from ..i18n import get_language_pack
 
 
 def explain_error(engine: CausalEngine, error_node_id: str) -> Dict[str, Any]:
@@ -25,10 +26,13 @@ def explain_error(engine: CausalEngine, error_node_id: str) -> Dict[str, Any]:
     rule_ids = [node.payload.get("rule_id") for node in rule_nodes if node.payload.get("rule_id")]
 
     parts: List[str] = []
+    i18n = get_language_pack()
+    
     if step_ids:
-        parts.append(f"Check steps: {', '.join(step_ids)}")
+        parts.append(i18n.text("causal.cause_steps", steps=", ".join(step_ids)))
     if rule_ids:
-        parts.append(f"Review rules: {', '.join(rule_ids)}")
+        parts.append(i18n.text("causal.cause_rules", rules=", ".join(rule_ids)))
+    
     message = "; ".join(parts) if parts else "No upstream cause identified."
 
     return {
