@@ -72,7 +72,7 @@ class DummyEncoder(ExpressionEncoder):
         (1.0, 1.0, ("R1", "R1"), FuzzyLabel.EXACT),
         (0.9333333333, 1.0, ("R1", "R1"), FuzzyLabel.EQUIVALENT),
         (0.8, 0.8, ("R1", "R1"), FuzzyLabel.APPROX_EQ),
-        (0.7, 0.7, ("R1", "R2"), FuzzyLabel.ANALOGOUS),
+        (0.7, 0.7, ("R1", "R2"), FuzzyLabel.APPROX_EQ),  # Decision Engine accepts 0.66 as Approx Eq
         (0.0, 0.0, (None, None), FuzzyLabel.CONTRADICT),
     ],
 )

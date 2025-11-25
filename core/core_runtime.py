@@ -38,6 +38,7 @@ class CoreRuntime(Engine):
     - HintEngine: For generating feedback
     """
 
+
     def __init__(
         self,
         computation_engine: ComputationEngine,
@@ -46,6 +47,8 @@ class CoreRuntime(Engine):
         exercise_spec: Optional[ExerciseSpec] = None,
         learning_logger: Optional[LearningLogger] = None,
         knowledge_registry: Optional[KnowledgeRegistry] = None,
+        decision_config: Optional[Any] = None, # DecisionConfig
+        hint_persona: str = "balanced",
     ):
         """
         Initialize the CoreRuntime.
@@ -56,6 +59,8 @@ class CoreRuntime(Engine):
             hint_engine: Engine for hints
             exercise_spec: Optional specification for the current exercise
             learning_logger: Optional logger for learning analytics
+            decision_config: Optional DecisionConfig for fuzzy judge
+            hint_persona: Persona for hint generation ("balanced", "sparta", "support")
         """
         self.computation_engine = computation_engine
         self.validation_engine = validation_engine
@@ -63,6 +68,15 @@ class CoreRuntime(Engine):
         self.exercise_spec = exercise_spec
         self.learning_logger = learning_logger or LearningLogger()
         self.knowledge_registry = knowledge_registry
+        self.hint_persona = hint_persona
+        
+        # Apply decision config if provided and fuzzy judge exists
+        if decision_config and hasattr(self.validation_engine, 'fuzzy_judge') and self.validation_engine.fuzzy_judge:
+             self.validation_engine.fuzzy_judge.decision_config = decision_config
+             # Re-init decision engine
+             from core.decision_theory import DecisionEngine
+             self.validation_engine.fuzzy_judge.decision_engine = DecisionEngine(decision_config)
+
         self.function_analyzer = FunctionAnalyzer(computation_engine)
         self.stats_engine = StatsEngine()
         self.trig_helper = TrigHelper()
@@ -289,6 +303,13 @@ class CoreRuntime(Engine):
              result["details"]["fuzzy_label"] = fuzzy_result.label.value
              result["details"]["fuzzy_score"] = fuzzy_result.score.combined_score
              
+             if "decision_action" in fuzzy_result.debug:
+                 result["details"]["decision_action"] = fuzzy_result.debug["decision_action"]
+             if "decision_utility" in fuzzy_result.debug:
+                 result["details"]["decision_utility"] = fuzzy_result.debug["decision_utility"]
+             if "decision_utils" in fuzzy_result.debug:
+                 result["details"]["decision_utils"] = fuzzy_result.debug["decision_utils"]
+             
              if is_valid and not is_valid_symbolic:
                  # If valid via fuzzy but not symbolic, suggest the 'before' state as the corrected form
                  # or simply note that it was fuzzy matched.
@@ -299,7 +320,7 @@ class CoreRuntime(Engine):
         else:
             # Generate hint if invalid
             # Use the previous expression as the target for the hint
-            hint = self.hint_engine.generate_hint(after, before)
+            hint = self.hint_engine.generate_hint(after, before, persona=self.hint_persona)
             result["details"]["hint"] = {
                 "message": hint.message,
                 "type": hint.hint_type,
@@ -494,7 +515,7 @@ class CoreRuntime(Engine):
             
             # If incorrect, generate hint
             if not validation_result.is_correct:
-                hint = self.hint_engine.generate_hint_for_spec(final_expr, self.exercise_spec)
+                hint = self.hint_engine.generate_hint_for_spec(final_expr, self.exercise_spec, persona=self.hint_persona)
                 result["details"]["hint"] = {
                     "message": hint.message,
                     "type": hint.hint_type

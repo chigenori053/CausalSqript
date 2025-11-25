@@ -26,6 +26,8 @@ from core.fuzzy.judge import FuzzyJudge
 from core.fuzzy.encoder import ExpressionEncoder
 from core.fuzzy.metric import SimilarityMetric
 from core.unit_engine import get_common_units
+from core.decision_theory import DecisionConfig
+from core.hint_engine import HintPersona
 
 # Page Config
 st.set_page_config(
@@ -69,7 +71,7 @@ comp_engine, val_engine, hint_engine, formatter = get_engines()
 
 # --- Helper Functions ---
 
-def render_card(title, latex_content, status, hint=None, corrected_form=None):
+def render_card(title, latex_content, status, hint=None, corrected_form=None, analysis=None):
     """Renders a result card."""
     border_color = "#4CAF50" if status == "ok" else "#FF5252"
     bg_color = "rgba(76, 175, 80, 0.1)" if status == "ok" else "rgba(255, 82, 82, 0.1)"
@@ -128,12 +130,43 @@ def render_card(title, latex_content, status, hint=None, corrected_form=None):
             """,
             unsafe_allow_html=True
         )
+        
+    if analysis:
+        with st.expander("🔍 Analysis Details"):
+            cols = st.columns(2)
+            with cols[0]:
+                st.markdown("**Fuzzy Match Score**")
+                score = analysis.get('fuzzy_score', 0.0)
+                st.progress(score)
+                st.caption(f"Score: {score:.3f}")
+            
+            with cols[1]:
+                st.markdown("**Decision Logic**")
+                st.write(f"Action: `{analysis.get('decision_action', 'N/A')}`")
+                st.write(f"Utility: `{analysis.get('decision_utility', 0.0):.2f}`")
+                
+            if 'decision_utils' in analysis:
+                st.caption("Utility Breakdown:")
+                st.json(analysis['decision_utils'])
 
     st.markdown("</div>", unsafe_allow_html=True)
 
 # --- Layout ---
 
 main_col, side_col = st.columns([3, 1.5])
+
+# --- Sidebar Configuration ---
+st.sidebar.header("Configuration")
+strategy = st.sidebar.selectbox(
+    "Decision Strategy", 
+    ["balanced", "strict", "encouraging"],
+    help="Determines how strict the judge is."
+)
+persona = st.sidebar.selectbox(
+    "Hint Persona", 
+    ["balanced", "sparta", "support"],
+    help="Determines the type of hints provided."
+)
 
 with main_col:
     st.title("CausalScript Interface")
@@ -155,7 +188,8 @@ with main_col:
                     latex_content=step['latex'],
                     status=step['status'],
                     hint=step.get('hint'),
-                    corrected_form=step.get('corrected_form_latex')
+                    corrected_form=step.get('corrected_form_latex'),
+                    analysis=step.get('analysis')
                 )
                 
         elif last_entry.get("type") == "error":
@@ -225,8 +259,15 @@ with main_col:
         
         # We need to get a fresh logger but reuse engines
         logger = LearningLogger()
-        # Re-instantiate runtime with the cached engines
-        runtime = CoreRuntime(comp_engine, val_engine, hint_engine, learning_logger=logger)
+        # Re-instantiate runtime with the cached engines and new config
+        runtime = CoreRuntime(
+            comp_engine, 
+            val_engine, 
+            hint_engine, 
+            learning_logger=logger,
+            decision_config=DecisionConfig(strategy=strategy),
+            hint_persona=persona
+        )
         
         try:
             # 1. Parse and Evaluate (Main Flow)
@@ -238,7 +279,7 @@ with main_col:
             # Collect logs for "Automated Answering"
             logs = logger.to_list()
             for record in logs:
-                st.session_state.logs.append(f"[{record['phase'].upper()}] {record.get('rendered', '')} ({record.get('status', '')})")
+                st.session_state.logs.append(record)
 
             # Build History Entry
             history_entry = {
@@ -255,14 +296,49 @@ with main_col:
                     step_data = {
                         "latex": formatter.format_expression(current_expr) if current_expr else "",
                         "status": record.get('status', 'ok'),
-                        "phase": record['phase']
+                        "phase": record['phase'],
+                        "analysis": {}
                     }
                     
                     # Check for corrected form in details (from FuzzyJudge)
-                    if 'meta' in record and record['meta'] and 'corrected_form' in record['meta']:
-                         cf = record['meta']['corrected_form']
-                         step_data['corrected_form_latex'] = formatter.format_expression(str(cf))
-                    
+                    if 'meta' in record and record['meta']:
+                        meta = record['meta']
+                        if 'corrected_form' in meta:
+                             cf = meta['corrected_form']
+                             step_data['corrected_form_latex'] = formatter.format_expression(str(cf))
+                        
+                        # Extract Analysis Details
+                        if 'fuzzy_score' in meta:
+                            step_data['analysis']['fuzzy_score'] = meta['fuzzy_score']
+                        
+                        # Extract Decision Details (nested in validation_details or top level depending on implementation)
+                        # In CoreRuntime.check_step, we put fuzzy stuff in details['fuzzy_label'] etc.
+                        # Wait, LearningLogger records what?
+                        # Evaluator logs: logger.log_step(..., meta=result['details'])
+                        # So meta IS result['details']
+                        
+                        # Let's check CoreRuntime.check_step output structure:
+                        # result["details"]["fuzzy_label"]
+                        # result["details"]["fuzzy_score"]
+                        # But wait, where is decision_action?
+                        # I need to update CoreRuntime to include decision debug info in the result details!
+                        
+                        # Assuming I will update CoreRuntime in a moment, let's write the UI code to expect it.
+                        if 'decision_action' in meta:
+                            step_data['analysis']['decision_action'] = meta['decision_action']
+                        if 'decision_utility' in meta:
+                            step_data['analysis']['decision_utility'] = meta['decision_utility']
+                        if 'decision_utils' in meta:
+                            step_data['analysis']['decision_utils'] = meta['decision_utils']
+                            
+                        # Also check validation_details if it's a 'finalize' step
+                        if 'validation_details' in meta:
+                             val_det = meta['validation_details']
+                             # If validation engine uses fuzzy judge, it might be here?
+                             # Currently ValidationEngine returns ValidationResult.details
+                             # I need to ensure FuzzyJudge info bubbles up there too.
+                             pass
+
                     if record['phase'] == 'problem':
                         last_valid_expr = current_expr
                     elif record['phase'] in ['step', 'end']:
@@ -274,7 +350,7 @@ with main_col:
                                 step_data['hint'] = record['meta']['hint']['message']
                             else:
                                 try:
-                                    hint_res = hint_engine.generate_hint(current_expr, last_valid_expr)
+                                    hint_res = hint_engine.generate_hint(current_expr, last_valid_expr, persona=persona)
                                     step_data['hint'] = hint_res.message
                                 except Exception:
                                     pass
@@ -331,8 +407,39 @@ with side_col:
             
         log_container = st.container(height=600)
         with log_container:
-            for log in st.session_state.logs:
-                st.text(log)
+            for record in st.session_state.logs:
+                # Basic info
+                phase = record['phase'].upper()
+                content = record.get('rendered', '')
+                status = record.get('status', '')
+                
+                # Status icon
+                icon = "✅" if status == "ok" else "❌" if status == "error" else "ℹ️"
+                
+                with st.expander(f"{icon} [{phase}] {content[:50]}..."):
+                    st.markdown(f"**Content**: `{content}`")
+                    st.markdown(f"**Status**: {status}")
+                    
+                    if 'meta' in record and record['meta']:
+                        meta = record['meta']
+                        st.divider()
+                        st.caption("Details")
+                        
+                        # Causal Info (Rule)
+                        if 'rule' in meta:
+                            st.markdown(f"**Applied Rule**: `{meta['rule'].get('id', 'Unknown')}`")
+                            st.caption(meta['rule'].get('description', ''))
+                            
+                        # Fuzzy / Ambiguity Info
+                        if 'fuzzy_score' in meta:
+                            st.markdown("**Ambiguity Estimation**")
+                            score = meta['fuzzy_score']
+                            st.progress(score)
+                            st.caption(f"Similarity: {score:.3f} ({meta.get('fuzzy_label', 'Unknown')})")
+                            
+                        # Decision Info
+                        if 'decision_action' in meta:
+                            st.markdown(f"**Decision**: {meta['decision_action']} (Utility: {meta.get('decision_utility', 0):.2f})")
 
     with tab_scenario:
         st.caption("Parallel computation results")

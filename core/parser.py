@@ -10,6 +10,7 @@ import re
 from . import ast_nodes as ast
 from .errors import SyntaxError
 from .input_parser import CausalScriptInputParser
+from .i18n import get_language_pack
 
 
 @dataclass
@@ -135,12 +136,18 @@ class Parser:
                 raise SyntaxError(f"Unsupported statement on line {parsed.number}: {raw.strip()}")
 
         program = ast.ProgramNode(line=None, body=nodes)
+        i18n = get_language_pack()
+
         if not any(isinstance(node, ast.ProblemNode) for node in nodes):
-            raise SyntaxError("Program must contain at least one problem statement.")
+            raise SyntaxError(i18n.text("parser.problem_required"))
+        
+        # Allow implicit end if missing
         if not any(isinstance(node, ast.EndNode) for node in nodes):
-            raise SyntaxError("Program must contain at least one end statement.")
+            # Append an implicit 'end: done'
+            nodes.append(ast.EndNode(expr=None, is_done=True, line=None))
+            
         if not any(isinstance(node, ast.StepNode) for node in nodes):
-            raise SyntaxError("Program must contain at least one step statement.")
+            raise SyntaxError(i18n.text("parser.step_required"))
         return program
 
     def _parse_problem(self, content: str, number: int) -> ast.ProblemNode:

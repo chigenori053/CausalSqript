@@ -9,6 +9,8 @@ from .encoder import ExpressionEncoder
 from .metric import SimilarityMetric
 from .types import FuzzyLabel, FuzzyResult, FuzzyScore, NormalizedExpr
 from ..i18n import get_language_pack
+from core.decision_theory import DecisionConfig, DecisionEngine, DecisionAction
+
 
 
 def _clamp(value: float) -> float:
@@ -20,10 +22,16 @@ class FuzzyJudge:
     encoder: ExpressionEncoder
     metric: SimilarityMetric
     thresholds: FuzzyThresholdConfig | None = None
+    decision_config: DecisionConfig | None = None
 
     def __post_init__(self) -> None:
         if self.thresholds is None:
             self.thresholds = FuzzyThresholdConfig()
+        
+        # Initialize Decision Engine
+        if self.decision_config is None:
+            self.decision_config = DecisionConfig()
+        self.decision_engine = DecisionEngine(self.decision_config)
 
     def judge_step(
         self,
@@ -56,25 +64,34 @@ class FuzzyJudge:
             0.2 * text_sim
         )
 
-        t = self.thresholds
-        if combined >= t.exact:
-            label = FuzzyLabel.EXACT
-            label_key = "fuzzy.label.exact"
-        elif combined >= t.equivalent:
-            label = FuzzyLabel.EQUIVALENT
-            label_key = "fuzzy.label.equivalent"
-        elif combined >= t.approx_eq:
-            label = FuzzyLabel.APPROX_EQ
-            label_key = "fuzzy.label.approx_eq"
-        elif combined >= t.analogous:
+        # --- Decision Theory Layer ---
+        # We treat 'combined' as P(Match)
+        action, utility, debug_utils = self.decision_engine.decide(combined)
+
+        # Map Decision Action to FuzzyLabel
+        # This mapping reconciles the decision theory output with the existing FuzzyLabel system.
+        if action == DecisionAction.ACCEPT:
+            # If accepted, we check how strong the match is for granular labeling
+            if combined >= self.thresholds.exact:
+                label = FuzzyLabel.EXACT
+                label_key = "fuzzy.label.exact"
+            elif combined >= self.thresholds.equivalent:
+                label = FuzzyLabel.EQUIVALENT
+                label_key = "fuzzy.label.equivalent"
+            else:
+                # Even if score is lower, if Decision Engine says ACCEPT (e.g. encouraging mode),
+                # we treat it as Approx Eq.
+                label = FuzzyLabel.APPROX_EQ
+                label_key = "fuzzy.label.approx_eq"
+        
+        elif action == DecisionAction.REVIEW:
+            # The engine is unsure or suggests review
             label = FuzzyLabel.ANALOGOUS
             label_key = "fuzzy.label.analogous"
-        elif combined <= t.contradict:
+            
+        else:  # REJECT
             label = FuzzyLabel.CONTRADICT
             label_key = "fuzzy.label.contradict"
-        else:
-            label = FuzzyLabel.UNKNOWN
-            label_key = "fuzzy.label.unknown"
 
         i18n = get_language_pack()
         
@@ -102,6 +119,9 @@ class FuzzyJudge:
         if reason_msg:
             full_reason += f" | {reason_msg}"
         full_reason += f" | {detail_msg}"
+        
+        # Add decision debug info
+        full_reason += f" | Strategy: {self.decision_config.strategy}, Action: {action.value}, Utility: {utility:.2f}"
 
         return FuzzyResult(
             label=label,
@@ -116,5 +136,8 @@ class FuzzyJudge:
                 "problem_raw": problem_expr["raw"],
                 "previous_raw": previous_expr["raw"],
                 "candidate_raw": candidate_expr["raw"],
+                "decision_action": action.value,
+                "decision_utility": utility,
+                "decision_utils": debug_utils
             },
         )

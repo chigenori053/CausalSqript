@@ -1,14 +1,20 @@
-"""Threshold configuration for fuzzy judgement."""
+"""Configuration for fuzzy judge."""
 
 from __future__ import annotations
 
 from dataclasses import dataclass
+from core.decision_theory import DecisionConfig
 
 
 @dataclass
 class FuzzyThresholdConfig:
-    exact: float = 0.99
-    equivalent: float = 0.95
-    approx_eq: float = 0.80
-    analogous: float = 0.60
-    contradict: float = 0.20
+    """
+    Thresholds for fuzzy matching labels.
+    
+    Legacy configuration for backward compatibility or direct threshold usage.
+    """
+    exact: float = 1.0
+    equivalent: float = 0.9
+    approx_eq: float = 0.8
+    analogous: float = 0.6
+    contradict: float = 0.2
