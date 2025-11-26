@@ -156,6 +156,15 @@ class Evaluator:
         self._meta: Dict[str, str] = {}
         self._config: Dict[str, Any] = {}
         self._mode: str = "strict"
+        self._context_stack: list[dict] = []
+
+    @property
+    def _symbolic_engine(self) -> SymbolicEngine:
+        if hasattr(self.engine, "symbolic_engine"):
+            return self.engine.symbolic_engine
+        if hasattr(self.engine, "computation_engine") and hasattr(self.engine.computation_engine, "symbolic_engine"):
+            return self.engine.computation_engine.symbolic_engine
+        raise NotImplementedError("Engine does not support symbolic operations.")
 
     def run(self) -> bool:
         # Reset run-scoped flags
@@ -182,6 +191,8 @@ class Evaluator:
                 self._handle_counterfactual(node)
             elif isinstance(node, ast.ScenarioNode):
                 self._handle_scenario(node)
+            elif isinstance(node, ast.SubProblemNode):
+                self._handle_sub_problem(node)
             else:  # pragma: no cover - defensive block.
                 raise SyntaxError(f"Unsupported node type: {type(node)}")
         if self._state != "END":
@@ -320,6 +331,28 @@ class Evaluator:
             self._has_mistake = True
             if meta.get("critical"):
                 self._has_critical_mistake = True
+        
+        if self._context_stack:
+            ctx = self._context_stack.pop()
+            parent_expr = ctx.get("parent_expr_for_replace") or ctx["parent_expr"]
+            target_sub = ctx["target_sub_expr"]
+            final_sub_result = result["after"]
+
+            # Substitute back
+            new_parent_expr = self._symbolic_engine.replace(parent_expr, target_sub, final_sub_result)
+            
+            self.engine.set(new_parent_expr)
+            
+            self.learning_logger.record(
+                phase="sub_problem_end",
+                expression=final_sub_result,
+                rendered=f"Sub-problem done. Return to: {new_parent_expr}",
+                status="ok"
+            )
+            
+            self._state = "STEP_RUN"
+            return
+
         self._state = "END"
         if not node.is_done:
             self._last_expr_raw = node.expr
@@ -512,6 +545,69 @@ class Evaluator:
             status="ok",
             meta={"context": context},
         )
+
+    def _handle_sub_problem(self, node: ast.SubProblemNode) -> None:
+        if self._state not in {"PROBLEM_SET", "STEP_RUN"}:
+             exc = MissingProblemError("sub_problem declared before problem.")
+             self._fatal(
+                 phase="sub_problem",
+                 expression=node.expr,
+                 rendered=f"Sub-problem: {node.expr}",
+                 exc=exc,
+             )
+
+        current_expr = getattr(self.engine, "_current_expr", None)
+        if current_expr is None:
+             exc = MissingProblemError("No active problem for sub-problem.")
+             self._fatal(
+                 phase="sub_problem",
+                 expression=node.expr,
+                 rendered=f"Sub-problem: {node.expr}",
+                 exc=exc,
+             )
+
+        # Apply context to current_expr if available to handle variables defined in prepare
+        current_expr_for_check = current_expr
+        context = {}
+        if hasattr(self.engine, "_context"):
+            context = self.engine._context
+        elif hasattr(self.engine, "computation_engine") and hasattr(self.engine.computation_engine, "variables"):
+            context = self.engine.computation_engine.variables
+            
+        if context:
+            # Avoid triggering full evaluation (e.g., trigonometric identities) while
+            # checking sub-problem structure. Use lightweight textual substitution.
+            current_expr_for_check = current_expr
+            try:
+                for k, v in context.items():
+                    current_expr_for_check = current_expr_for_check.replace(str(k), str(v))
+            except Exception:
+                current_expr_for_check = current_expr
+
+        if not self._symbolic_engine.is_subexpression(node.expr, current_expr_for_check):
+             exc = InvalidStepError(f"'{node.expr}' is not a sub-expression of '{current_expr_for_check}'")
+             self._fatal(
+                 phase="sub_problem",
+                 expression=node.expr,
+                 rendered=f"Invalid sub-problem: {node.expr}",
+                 exc=exc
+             )
+
+        self._context_stack.append({
+            "parent_expr": current_expr,
+            "parent_expr_for_replace": current_expr_for_check,
+            "target_sub_expr": node.expr
+        })
+
+        self.engine.set(node.expr)
+        
+        self.learning_logger.record(
+            phase="sub_problem",
+            expression=getattr(node, "raw_expr", node.expr),
+            rendered=f"Sub-problem: {getattr(node, 'raw_expr', node.expr)}",
+            status="ok"
+        )
+        self._state = "PROBLEM_SET"
 
     def _run_fuzzy_judge(
         self,

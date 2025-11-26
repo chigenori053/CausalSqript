@@ -203,6 +203,33 @@ class SymbolicEngine:
         except Exception:
             return False
 
+    def replace(self, full_expr: str, target: str, replacement: str) -> str:
+        """Replace target sub-expression with replacement in full_expr."""
+        # Prefer structural string replacement to avoid SymPy auto-simplifying
+        # the entire expression (e.g., collapsing (1+2)*(3+4) to 21).
+        if full_expr.strip() == target.strip():
+            return replacement
+
+        # Naive textual replacement first; validated by attempting to parse later.
+        candidate = full_expr.replace(target, f"({replacement})")
+        try:
+            self.to_internal(candidate)
+            return candidate
+        except Exception:
+            pass
+
+        if self._fallback is not None:
+            return candidate
+
+        try:
+            internal_full = self.to_internal(full_expr)
+            internal_target = self.to_internal(target)
+            internal_replacement = self.to_internal(replacement)
+            new_internal = internal_full.xreplace({internal_target: internal_replacement})
+            return str(new_internal)
+        except Exception:
+            return candidate
+
     def _fallback_is_equiv(self, expr1: str, expr2: str) -> bool:
         assert self._fallback is not None
         symbols = self._fallback.symbols(expr1) | self._fallback.symbols(expr2)
@@ -295,6 +322,7 @@ class SymbolicEngine:
             return expr
 
     def evaluate(self, expr: str, context: Dict[str, Any]) -> Any:
+        print(f"DEBUG: evaluate called for {expr} with context {context}, fallback={self._fallback}")
         if self._fallback is not None:
             symbols = self._fallback.symbols(expr)
             if not context and symbols:
@@ -321,6 +349,37 @@ class SymbolicEngine:
         except Exception as exc:
             raise EvaluationError(f"Failed to evaluate expression: {exc}")
 
+    def substitute(self, expr: str, context: Dict[str, Any]) -> str:
+        """Substitute variables in expr using context, without full evaluation."""
+        if self._fallback is not None:
+             # Fallback: naive string replacement for now
+             # This is risky but better than nothing for fallback
+             result = expr
+             for k, v in context.items():
+                 result = result.replace(k, str(v))
+             return result
+
+        try:
+            # Use parse_expr with evaluate=False to prevent auto-simplification
+            from sympy.parsing.sympy_parser import parse_expr # type: ignore
+            local_dict = {"e": _sympy.E, "pi": _sympy.pi}
+            
+            # Parse expr
+            internal = parse_expr(expr, evaluate=False, local_dict=local_dict)
+            
+            # Parse context values
+            subs = {}
+            for k, v in context.items():
+                val_internal = parse_expr(str(v), evaluate=False, local_dict=local_dict)
+                subs[k] = val_internal
+                # Also handle symbol objects if keys are strings
+                subs[_sympy.Symbol(k)] = val_internal
+
+            new_internal = internal.subs(subs)
+            return str(new_internal)
+        except Exception:
+            return expr
+
 
     def evaluate_numeric(self, expr: str, assignment: Dict[str, int]) -> Any:
         if self._fallback is not None:
@@ -342,7 +401,8 @@ class SymbolicEngine:
         return f"Compared via {hint}: {simplified_before} → {simplified_after}."
 
     def _to_python_number(self, value: Any) -> Any:
-        if _sympy is None:
+        print(f"DEBUG: _to_python_number called with {value} type {type(value)}")
+        if isinstance(value, int):
             return value
 
         is_integer_attr = getattr(value, "is_integer", None)
@@ -377,6 +437,14 @@ class SymbolicEngine:
                 return Fraction(numer, denom)
             except Exception:
                 pass
+
+        if _sympy is not None:
+             # print(f"DEBUG: checking value {value} type {type(value)}")
+             if value.has(_sympy.pi) or value.has(_sympy.E):
+                 print(f"DEBUG: Keeping symbolic value: {value}")
+                 return value
+        else:
+             print("DEBUG: _sympy is None")
 
         try:
             return float(value)

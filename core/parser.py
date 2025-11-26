@@ -132,6 +132,9 @@ class Parser:
                         assignments=assignments
                     )
                 )
+            elif keyword == "sub_problem" and has_colon:
+                nodes.append(self._parse_sub_problem(rest.strip(), parsed.number))
+                index += 1
             else:
                 raise SyntaxError(f"Unsupported statement on line {parsed.number}: {raw.strip()}")
 
@@ -159,6 +162,13 @@ class Parser:
         if not expr:
             raise SyntaxError(f"Problem expression required on line {number}.")
         return ast.ProblemNode(expr=expr, line=number)
+
+    def _parse_sub_problem(self, content: str, number: int) -> ast.SubProblemNode:
+        raw_expr = content.strip()
+        expr = self._normalize_expr(content)
+        if not expr:
+            raise SyntaxError(f"Sub-problem expression required on line {number}.")
+        return ast.SubProblemNode(expr=expr, raw_expr=raw_expr, line=number)
 
     def _parse_step_legacy(self, content: str, step_id: str | None, number: int) -> ast.StepNode:
         # Handle potential double prefixing

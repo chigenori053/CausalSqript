@@ -147,6 +147,13 @@ class StepNode(Node):
 
 
 @dataclass
+class SubProblemNode(Node):
+    expr: str = ""
+    raw_expr: str = ""
+
+
+
+@dataclass
 class EndNode(Node):
     expr: str | None = None
     is_done: bool = False
