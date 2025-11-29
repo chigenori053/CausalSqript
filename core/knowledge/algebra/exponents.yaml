@@ -1,0 +1,13 @@
+- id: ALG-POW-001
+  domain: algebra
+  category: exponents
+  pattern_before: "a**2"
+  pattern_after: "a * a"
+  description: "2乗の定義"
+
+- id: ALG-POW-002
+  domain: algebra
+  category: exponents
+  pattern_before: "a**n * a**m"
+  pattern_after: "a**(n + m)"
+  description: "指数法則（積）"

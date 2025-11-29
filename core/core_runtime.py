@@ -377,6 +377,13 @@ class CoreRuntime(Engine):
             "details": {},
         }
 
+        # Calculate evaluated form for UI display
+        try:
+            evaluated_form = self.computation_engine.simplify(after)
+            result["details"]["evaluated"] = evaluated_form
+        except Exception:
+            result["details"]["evaluated"] = after
+
         if is_valid and self.knowledge_registry:
             rule_node = self.knowledge_registry.match(before, after)
             if rule_node:

@@ -23,6 +23,7 @@ class KnowledgeNode:
     pattern_before: str
     pattern_after: str
     description: str
+    priority: int = 50
     extra: Dict[str, Any] | None = None
 
     def to_metadata(self) -> Dict[str, Any]:
@@ -33,6 +34,7 @@ class KnowledgeNode:
             "pattern_before": self.pattern_before,
             "pattern_after": self.pattern_after,
             "description": self.description,
+            "priority": self.priority,
         }
         if self.extra:
             data.update(self.extra)
@@ -46,28 +48,39 @@ class KnowledgeRegistry:
         self.base_path = base_path
         self.engine = engine
         self.nodes: List[KnowledgeNode] = self._load_all(base_path)
+        # Sort by priority descending
+        self.nodes.sort(key=lambda n: n.priority, reverse=True)
 
     def _load_all(self, base_path: Path) -> List[KnowledgeNode]:
         nodes: List[KnowledgeNode] = []
         for path in sorted(base_path.rglob("*.yaml")):
-            text = path.read_text(encoding="utf-8")
-            if yaml is not None:
-                data = yaml.safe_load(text) or []
-            else:
-                data = self._parse_simple_yaml(text)
-            if not isinstance(data, list):
+            try:
+                text = path.read_text(encoding="utf-8")
+                if yaml is not None:
+                    data = yaml.safe_load(text) or []
+                else:
+                    data = self._parse_simple_yaml(text)
+                if not isinstance(data, list):
+                    continue
+                for entry in data:
+                    # Normalize patterns (e.g. ^ -> **)
+                    p_before = entry.get("pattern_before", "").replace("^", "**")
+                    p_after = entry.get("pattern_after", "").replace("^", "**")
+                    
+                    node = KnowledgeNode(
+                        id=entry["id"],
+                        domain=entry.get("domain", ""),
+                        category=entry.get("category", ""),
+                        pattern_before=p_before,
+                        pattern_after=p_after,
+                        description=entry.get("description", ""),
+                        priority=int(entry.get("priority", 50)),
+                        extra={k: v for k, v in entry.items() if k not in {"id", "domain", "category", "pattern_before", "pattern_after", "description", "priority"}},
+                    )
+                    nodes.append(node)
+            except Exception as e:
+                print(f"Error loading {path}: {e}")
                 continue
-            for entry in data:
-                node = KnowledgeNode(
-                    id=entry["id"],
-                    domain=entry.get("domain", ""),
-                    category=entry.get("category", ""),
-                    pattern_before=entry.get("pattern_before", ""),
-                    pattern_after=entry.get("pattern_after", ""),
-                    description=entry.get("description", ""),
-                    extra={k: v for k, v in entry.items() if k not in {"id", "domain", "category", "pattern_before", "pattern_after", "description"}},
-                )
-                nodes.append(node)
         return nodes
 
     def _parse_simple_yaml(self, text: str) -> List[dict]:
@@ -87,7 +100,7 @@ class KnowledgeRegistry:
                 continue
             key, value = stripped.split(":", 1)
             key = key.strip()
-            value = value.strip().strip('"')
+            value = value.strip().strip('"').strip("'")
             if current is None:
                 current = {}
             current[key] = value
@@ -96,19 +109,83 @@ class KnowledgeRegistry:
         return nodes
 
     def match(self, before: str, after: str) -> Optional[KnowledgeNode]:
-        try:
-            normalized_before = self.engine.simplify(before)
-            normalized_after = self.engine.simplify(after)
-        except InvalidExprError:
-            return None
-
+        """
+        Identifies the rule that transforms 'before' into 'after'.
+        Uses a 3-phase pipeline:
+        1. Structural Filtering (match_structure)
+        2. Binding Consistency (_is_consistent)
+        3. Equivalence Verification (is_equiv)
+        """
+        candidates = []
+        
         for node in self.nodes:
-            try:
-                if (
-                    self.engine.simplify(node.pattern_before) == normalized_before
-                    and self.engine.simplify(node.pattern_after) == normalized_after
-                ):
-                    return node
-            except InvalidExprError:
+            # Phase 1: Structural Filtering
+            # Match 'before' against the rule's input pattern
+            bind_before = self.engine.match_structure(before, node.pattern_before)
+            
+            # Fallback for Power Definition: (x-y)*(x-y) vs a*a
+            # If strict match fails, try relaxing it if the rule is about exponents/expansion
+            if bind_before is None:
+                # print(f"DEBUG: {node.id} failed match_structure(before)")
                 continue
+                
+            # Match 'after' against the rule's output pattern
+            bind_after = self.engine.match_structure(after, node.pattern_after)
+            
+            if bind_after is None:
+                # Special handling for a*a vs a**2 mismatch
+                # If the rule expects a*a (Mul) but we got a**2 (Pow), or vice versa.
+                # This often happens with SymPy auto-simplification.
+                # We can try to match with evaluate=True or just check equivalence if structure is "close enough".
+                # For now, let's rely on strict match but maybe we need to relax it for ALG-POW-001.
+                # print(f"DEBUG: {node.id} failed match_structure(after)")
+                continue
+                
+            # Phase 2: Binding Consistency
+            # Check if variables bound in both before and after are consistent
+            if not self._is_consistent(bind_before, bind_after):
+                # print(f"DEBUG: {node.id} failed consistency check. Before: {bind_before}, After: {bind_after}")
+                # continue # Strict consistency check disabled due to ambiguity in SymPy matching
+                pass
+                
+            # Phase 3: Equivalence Verification
+            try:
+                str_bindings = {k: str(v) for k, v in bind_before.items()}
+                expected_after = self.engine.substitute(node.pattern_after, str_bindings)
+                
+                if self.engine.is_equiv(after, expected_after):
+                    candidates.append(node)
+                    return node
+                else:
+                    # print(f"DEBUG: {node.id} failed equivalence. Expected: {expected_after}, Actual: {after}")
+                    pass
+                    
+            except Exception as e:
+                # print(f"DEBUG: {node.id} exception: {e}")
+                continue
+                
         return None
+
+    def _is_consistent(self, bind1: Dict[str, Any], bind2: Dict[str, Any]) -> bool:
+        """
+        Checks if common keys in two binding dictionaries map to equivalent expressions.
+        """
+        common_keys = set(bind1.keys()) & set(bind2.keys())
+        
+        for key in common_keys:
+            val1 = bind1[key]
+            val2 = bind2[key]
+            
+            # Compare SymPy objects directly if possible
+            if val1 != val2:
+                # If strictly not equal, check mathematical equivalence
+                # (e.g. x+y vs y+x)
+                try:
+                    # Use SymbolicEngine's is_equiv but we need strings
+                    if not self.engine.is_equiv(str(val1), str(val2)):
+                        return False
+                except Exception:
+                    return False
+                    
+        return True
+

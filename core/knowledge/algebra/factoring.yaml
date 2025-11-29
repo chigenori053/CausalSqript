@@ -1,0 +1,14 @@
+- id: ALG-FAC-001
+  domain: algebra
+  category: factoring
+  pattern_before: "a * b + a * c"
+  pattern_after: "a * (b + c)"
+  description: "共通因数でくくる"
+
+- id: ALG-FAC-002
+  domain: algebra
+  category: factoring
+  pattern_before: "a**2 - b**2"
+  pattern_after: "(a + b) * (a - b)"
+  description: "和と差の積（因数分解）"
+  priority: 60

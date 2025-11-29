@@ -1,5 +1,5 @@
 """
-CausalScript Streamlit UI.
+CausalScript Streamlit UI - Test Interface
 """
 
 import streamlit as st
@@ -28,10 +28,11 @@ from core.fuzzy.metric import SimilarityMetric
 from core.unit_engine import get_common_units
 from core.decision_theory import DecisionConfig
 from core.hint_engine import HintPersona
+from core.knowledge_registry import KnowledgeRegistry
 
 # Page Config
 st.set_page_config(
-    page_title="CausalScript UI",
+    page_title="CausalScript Logic Tester",
     layout="wide",
     initial_sidebar_state="expanded"
 )
@@ -43,8 +44,6 @@ if "logs" not in st.session_state:
     st.session_state.logs = []
 if "scenario_logs" not in st.session_state:
     st.session_state.scenario_logs = []
-if "step_count" not in st.session_state:
-    st.session_state.step_count = 1
 
 # Initialize Engines (Cached)
 @st.cache_resource
@@ -61,362 +60,248 @@ def get_engines():
     hint_engine = HintEngine(comp_engine)
     formatter = LaTeXFormatter(sym_engine)
     
+    # Initialize Knowledge Registry
+    # Point to the knowledge root directory
+    knowledge_path = Path(os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "core", "knowledge")))
+    # Create directory if it doesn't exist to avoid errors
+    knowledge_path.mkdir(parents=True, exist_ok=True)
+    knowledge_registry = KnowledgeRegistry(knowledge_path, sym_engine)
+    
     # Inject common units into context
     for name, unit in get_common_units().items():
         comp_engine.bind(name, unit)
         
-    return comp_engine, val_engine, hint_engine, formatter
+    return comp_engine, val_engine, hint_engine, formatter, knowledge_registry
 
-comp_engine, val_engine, hint_engine, formatter = get_engines()
+comp_engine, val_engine, hint_engine, formatter, knowledge_registry = get_engines()
 
 # --- Helper Functions ---
 
-def render_card(title, latex_content, status, hint=None, corrected_form=None, analysis=None):
-    """Renders a result card."""
-    border_color = "#4CAF50" if status == "ok" else "#FF5252"
-    icon = "✅" if status == "ok" else "❌"
+def render_test_report(step_index, step_data):
+    """Renders a detailed test report for a single step."""
+    status = step_data['status']
+    is_ok = status == "ok"
     
-    # Use a container with border (Streamlit >= 1.27)
-    # If border=True causes issues in older versions, we can remove it, but st.rerun() implies new version.
-    with st.container(border=True):
-        # Header
-        st.markdown(
-            f"<h3 style='color: {border_color}; margin: 0; padding: 0;'>{icon} {title}</h3>",
-            unsafe_allow_html=True
-        )
+    # Color coding
+    if is_ok:
+        border_color = "#28a745" # Green
+        bg_color = "rgba(40, 167, 69, 0.1)"
+    else:
+        border_color = "#dc3545" # Red
+        bg_color = "rgba(220, 53, 69, 0.1)"
         
-        if latex_content:
-            st.latex(latex_content)
+    with st.container():
+        st.markdown(f"""
+        <div style="border-left: 5px solid {border_color}; padding-left: 15px; margin-bottom: 20px; background-color: {bg_color}; padding: 10px; border-radius: 5px;">
+            <h4 style="margin: 0;">Step {step_index}</h4>
+        </div>
+        """, unsafe_allow_html=True)
         
-        if corrected_form:
-            st.info(f"Corrected Form:\n\n$${corrected_form}$$")
+        # 1. Formula Display
+        f_cols = st.columns(2)
+        with f_cols[0]:
+            st.caption("Input Formula")
+            st.latex(step_data['latex'])
+        with f_cols[1]:
+            st.caption("Evaluated Formula")
+            if 'evaluated' in step_data['analysis']:
+                st.latex(step_data['analysis']['evaluated'])
+            else:
+                st.markdown("*Not available*")
+        
+        # 2. Analysis Grid
+        cols = st.columns(3)
+        
+        # Col 1: Causal / Logic Analysis
+        with cols[0]:
+            st.markdown("**🧠 Causal Inference**")
+            analysis = step_data.get('analysis', {})
             
-        if status != "ok" and hint:
-            st.warning(f"Hint: {hint}")
-            
-        if analysis:
-            with st.expander("🔍 Analysis Details"):
-                cols = st.columns(2)
-                with cols[0]:
-                    st.markdown("**Fuzzy Match Score**")
-                    score = analysis.get('fuzzy_score', 0.0)
-                    st.progress(score)
-                    st.caption(f"Score: {score:.3f}")
+            # Rule Info
+            if 'rule' in analysis:
+                rule = analysis['rule']
+                st.success(f"**Rule Match**: `{rule.get('id', 'N/A')}`")
+                st.caption(rule.get('description', ''))
+            else:
+                st.markdown("Rule Match: *None*")
                 
-                with cols[1]:
-                    st.markdown("**Decision Logic**")
-                    st.write(f"Action: `{analysis.get('decision_action', 'N/A')}`")
-                    st.write(f"Utility: `{analysis.get('decision_utility', 0.0):.2f}`")
-                    
+            # Fuzzy Info
+            if 'fuzzy_score' in analysis:
+                score = analysis['fuzzy_score']
+                label = analysis.get('fuzzy_label', 'N/A')
+                st.markdown(f"**Fuzzy Score**: `{score:.3f}`")
+                st.progress(score)
+                st.caption(f"Label: {label}")
+                
+        # Col 2: Decision Theory
+        with cols[1]:
+            st.markdown("**⚖️ Decision Engine**")
+            
+            if 'decision_action' in analysis:
+                action = analysis['decision_action']
+                utility = analysis.get('decision_utility', 0.0)
+                
+                st.info(f"**Action**: `{action}`")
+                st.markdown(f"**Utility**: `{utility:.2f}`")
+                
                 if 'decision_utils' in analysis:
-                    st.caption("Utility Breakdown:")
-                    st.json(analysis['decision_utils'])
+                    with st.expander("Utility Breakdown"):
+                        st.json(analysis['decision_utils'])
+            else:
+                st.markdown("*No decision data available*")
+
+        # Col 3: Hint Generation
+        with cols[2]:
+            st.markdown("**💡 Hint System**")
+            
+            hint_data = step_data.get('hint_data')
+            if hint_data:
+                st.warning(f"**Message**: {hint_data.get('message')}")
+                st.markdown(f"**Type**: `{hint_data.get('type')}`")
+                
+                details = hint_data.get('details', {})
+                if details:
+                    st.caption(f"Selection Utility: {details.get('selection_utility', 'N/A')}")
+                    st.caption(f"Persona: {details.get('persona', 'N/A')}")
+            elif not is_ok:
+                st.error("No hint generated.")
+            else:
+                st.markdown("*Step Valid - No Hint Needed*")
 
 # --- Layout ---
 
-main_col, side_col = st.columns([3, 1.5])
+st.title("🧪 CausalScript Logic Tester")
+st.markdown("""
+This interface is designed to test:
+1. **Formula Recognition**: Problem -> Step -> End flow.
+2. **Step Evaluation**: Validity of each transformation.
+3. **Causal Inference**: Rule matching, Decision Theory application, and Adaptive Hinting.
+""")
 
-# --- Sidebar Configuration ---
-st.sidebar.header("Configuration")
-strategy = st.sidebar.selectbox(
-    "Decision Strategy", 
-    ["balanced", "strict", "encouraging"],
-    help="Determines how strict the judge is."
-)
-persona = st.sidebar.selectbox(
-    "Hint Persona", 
-    ["balanced", "sparta", "support"],
-    help="Determines the type of hints provided."
-)
+st.divider()
 
-with main_col:
-    st.title("CausalScript Interface")
+# Configuration Sidebar
+with st.sidebar:
+    st.header("⚙️ Configuration")
     
-    # --- Output Section (Top) ---
-    st.subheader("Evaluation Results")
+    st.subheader("Decision Theory")
+    strategy = st.selectbox(
+        "Strategy", 
+        ["balanced", "strict", "encouraging"],
+        help="Defines the utility matrix for the Decision Engine."
+    )
     
-    if st.session_state.history:
-        last_entry = st.session_state.history[-1]
-        
-        if last_entry.get("type") == "script":
-            for step in last_entry.get("steps", []):
-                title = step['phase'].capitalize()
-                if step['phase'] == 'step':
-                    pass
-                
-                render_card(
-                    title=title,
-                    latex_content=step['latex'],
-                    status=step['status'],
-                    hint=step.get('hint'),
-                    corrected_form=step.get('corrected_form_latex'),
-                    analysis=step.get('analysis')
-                )
-                
-        elif last_entry.get("type") == "error":
-            st.error(f"Error: {last_entry['error']}")
-    else:
-        st.info("Enter a problem and steps below to see results here.")
-
+    st.subheader("Hint System")
+    persona = st.selectbox(
+        "Persona", 
+        ["balanced", "sparta", "support"],
+        help="Defines the personality and utility function for Hint Selection."
+    )
+    
     st.divider()
-
-    # --- Input Section (Bottom) ---
-    st.subheader("Input")
-    
-    tab_struct, tab_raw = st.tabs(["Structured Input", "Raw Script"])
-    
-    user_input = None
-    process_input = False
-
-    with tab_struct:
-        with st.form("structured_form"):
-            problem_input = st.text_input("Problem", placeholder="e.g., (x - 2y)^2")
-            
-            steps_input = st.text_area("Steps (One per line)", height=150, placeholder="x^2 - 4xy + 4y^2\n...")
-            
-            end_input = st.text_input("End (Final Answer)", placeholder="e.g., x^2 - 4xy + 4y^2")
-            
-            submitted_struct = st.form_submit_button("Evaluate")
-            
-            if submitted_struct:
-                # Construct script
-                script_lines = []
-                if problem_input:
-                    if problem_input.strip().lower().startswith("problem:"):
-                        script_lines.append(problem_input)
-                    else:
-                        script_lines.append(f"problem: {problem_input}")
-                
-                if steps_input:
-                    for line in steps_input.split('\n'):
-                        if line.strip():
-                            if line.strip().lower().startswith("step:"):
-                                script_lines.append(line.strip())
-                            else:
-                                script_lines.append(f"step: {line.strip()}")
-                            
-                if end_input:
-                    if end_input.strip().lower().startswith("end:"):
-                        script_lines.append(end_input)
-                    else:
-                        script_lines.append(f"end: {end_input}")
-                
-                user_input = "\n".join(script_lines)
-                process_input = True
-
-    with tab_raw:
-        with st.form("raw_form"):
-            raw_input = st.text_area("Script", height=200, placeholder="problem: ...\nstep: ...\nend: ...")
-            submitted_raw = st.form_submit_button("Run Script")
-            if submitted_raw:
-                user_input = raw_input
-                process_input = True
-
-    # Processing Logic
-    if process_input and user_input:
-        # Reset logs
+    if st.button("Clear History"):
+        st.session_state.history = []
         st.session_state.logs = []
-        st.session_state.scenario_logs = []
+        st.rerun()
+
+# Main Input Area
+col_input, col_results = st.columns([1, 1])
+
+with col_input:
+    st.subheader("📝 Input Script")
+    
+    with st.form("test_form"):
+        st.caption("Enter the full script below using `problem:`, `step:`, and `end:` keywords.")
         
-        # We need to get a fresh logger but reuse engines
-        logger = LearningLogger()
-        # Re-instantiate runtime with the cached engines and new config
-        runtime = CoreRuntime(
-            comp_engine, 
-            val_engine, 
-            hint_engine, 
-            learning_logger=logger,
-            decision_config=DecisionConfig(strategy=strategy),
-            hint_persona=persona
-        )
+        default_script = """problem: (x - 2y)^2
+step: (x - 2y)(x - 2y)
+step: x(x - 2y) - 2y(x - 2y)
+step: x^2 - 2xy - 2yx + 4y^2
+step: x^2 - 4xy + 4y^2
+end: x^2 - 4xy + 4y^2"""
         
-        try:
-            # 1. Parse and Evaluate (Main Flow)
-            parser = Parser(user_input)
-            program = parser.parse()
-            evaluator = Evaluator(program, runtime, learning_logger=logger)
-            success = evaluator.run()
+        user_input = st.text_area("Script", height=400, value=default_script, help="Type your CausalScript here.")
+        
+        submitted = st.form_submit_button("Run Test", type="primary")
+        
+        if submitted:
+            # Reset logs
+            st.session_state.logs = []
             
-            # Collect logs for "Automated Answering"
-            logs = logger.to_list()
-            for record in logs:
-                st.session_state.logs.append(record)
-
-            # Build History Entry
-            history_entry = {
-                "input": user_input,
-                "type": "script",
-                "steps": []
-            }
-
-            last_valid_expr = None
-            for record in logs:
-                if record['phase'] in ['problem', 'step', 'end']:
-                    current_expr = str(record['expression']) if record['expression'] else ""
-                    
-                    step_data = {
-                        "latex": formatter.format_expression(current_expr) if current_expr else "",
-                        "status": record.get('status', 'ok'),
-                        "phase": record['phase'],
-                        "analysis": {}
-                    }
-                    
-                    # Check for corrected form in details (from FuzzyJudge)
-                    if 'meta' in record and record['meta']:
-                        meta = record['meta']
-                        if 'corrected_form' in meta:
-                             cf = meta['corrected_form']
-                             step_data['corrected_form_latex'] = formatter.format_expression(str(cf))
+            # Initialize Runtime
+            logger = LearningLogger()
+            runtime = CoreRuntime(
+                comp_engine, 
+                val_engine, 
+                hint_engine, 
+                learning_logger=logger,
+                knowledge_registry=knowledge_registry,
+                decision_config=DecisionConfig(strategy=strategy),
+                hint_persona=persona
+            )
+            
+            try:
+                # Parse and Evaluate
+                parser = Parser(user_input)
+                program = parser.parse()
+                evaluator = Evaluator(program, runtime, learning_logger=logger)
+                success = evaluator.run()
+                
+                # Process Logs into History
+                logs = logger.to_list()
+                history_entry = {"steps": []}
+                
+                for record in logs:
+                    if record['phase'] in ['problem', 'step', 'end']:
+                        current_expr = str(record['expression']) if record['expression'] else ""
+                        meta = record.get('meta', {})
                         
-                        # Extract Analysis Details
+                        step_data = {
+                            "phase": record['phase'],
+                            "latex": formatter.format_expression(current_expr) if current_expr else "",
+                            "status": record.get('status', 'ok'),
+                            "analysis": {},
+                            "hint_data": None
+                        }
+                        
+                        # Extract Analysis
+                        if 'rule' in meta:
+                            step_data['analysis']['rule'] = meta['rule']
+                        
                         if 'fuzzy_score' in meta:
                             step_data['analysis']['fuzzy_score'] = meta['fuzzy_score']
+                            step_data['analysis']['fuzzy_label'] = meta.get('fuzzy_label')
                         
-                        # Extract Decision Details (nested in validation_details or top level depending on implementation)
-                        # In CoreRuntime.check_step, we put fuzzy stuff in details['fuzzy_label'] etc.
-                        # Wait, LearningLogger records what?
-                        # Evaluator logs: logger.log_step(..., meta=result['details'])
-                        # So meta IS result['details']
-                        
-                        # Let's check CoreRuntime.check_step output structure:
-                        # result["details"]["fuzzy_label"]
-                        # result["details"]["fuzzy_score"]
-                        # But wait, where is decision_action?
-                        # I need to update CoreRuntime to include decision debug info in the result details!
-                        
-                        # Assuming I will update CoreRuntime in a moment, let's write the UI code to expect it.
+                        if 'evaluated' in meta:
+                            step_data['analysis']['evaluated'] = formatter.format_expression(str(meta['evaluated']))
+                            
                         if 'decision_action' in meta:
                             step_data['analysis']['decision_action'] = meta['decision_action']
-                        if 'decision_utility' in meta:
-                            step_data['analysis']['decision_utility'] = meta['decision_utility']
-                        if 'decision_utils' in meta:
-                            step_data['analysis']['decision_utils'] = meta['decision_utils']
+                            step_data['analysis']['decision_utility'] = meta.get('decision_utility')
+                            step_data['analysis']['decision_utils'] = meta.get('decision_utils')
                             
-                        # Also check validation_details if it's a 'finalize' step
-                        if 'validation_details' in meta:
-                             val_det = meta['validation_details']
-                             # If validation engine uses fuzzy judge, it might be here?
-                             # Currently ValidationEngine returns ValidationResult.details
-                             # I need to ensure FuzzyJudge info bubbles up there too.
-                             pass
-
-                    if record['phase'] == 'problem':
-                        last_valid_expr = current_expr
-                    elif record['phase'] in ['step', 'end']:
-                        if record.get('status') == 'ok':
-                            last_valid_expr = current_expr
-                        elif last_valid_expr:
-                            # Generate hint (if not already in meta)
-                            if 'meta' in record and record['meta'] and 'hint' in record['meta']:
-                                step_data['hint'] = record['meta']['hint']['message']
-                            else:
-                                try:
-                                    hint_res = hint_engine.generate_hint(current_expr, last_valid_expr, persona=persona)
-                                    step_data['hint'] = hint_res.message
-                                except Exception:
-                                    pass
-
-                    history_entry["steps"].append(step_data)
-
-            st.session_state.history.append(history_entry)
-            
-            # 2. Parallel Computation (Scenario Logs)
-            problem_expr = None
-            for record in logs:
-                if record['phase'] == 'problem':
-                    problem_expr = str(record['expression'])
-                    break
-            
-            if problem_expr:
-                try:
-                    # Default scenarios for demo
-                    scenarios = {
-                        "Scenario A (x=1, y=1)": {"x": 1, "y": 1},
-                        "Scenario B (x=2, y=3)": {"x": 2, "y": 3},
-                        "Scenario C (x=0, y=5)": {"x": 0, "y": 5}
-                    }
-                    results = comp_engine.evaluate_in_scenarios(problem_expr, scenarios)
-                    st.session_state.scenario_logs.append(f"Evaluated '{problem_expr}' across {len(scenarios)} scenarios:")
-                    st.session_state.scenario_logs.append(json.dumps(results, indent=2))
-                except Exception as e:
-                    st.session_state.scenario_logs.append(f"Scenario Eval Error: {e}")
-
-            st.rerun()
-            
-        except Exception as e:
-            st.session_state.logs.append({
-                'phase': 'System Error',
-                'rendered': str(e),
-                'status': 'error',
-                'meta': {}
-            })
-            st.session_state.history.append({
-                "input": user_input,
-                "type": "error",
-                "error": str(e)
-            })
-            st.rerun()
-
-# --- Side Panel ---
-
-with side_col:
-    st.header("Logs & Analysis")
-    
-    # Tabbed Side Panel
-    tab_auto, tab_scenario = st.tabs(["Automated Answering", "Scenario Logs"])
-    
-    with tab_auto:
-        st.caption("Step-by-step calculation logs")
-        if st.button("Clear Auto Logs", key="clear_auto"):
-            st.session_state.logs = []
-            st.rerun()
-            
-        log_container = st.container(height=600)
-        with log_container:
-            for record in st.session_state.logs:
-                # Basic info
-                phase = record['phase'].upper()
-                content = record.get('rendered', '')
-                status = record.get('status', '')
+                        # Extract Hint
+                        if 'hint' in meta:
+                            step_data['hint_data'] = meta['hint']
+                            
+                        history_entry["steps"].append(step_data)
                 
-                # Status icon
-                icon = "✅" if status == "ok" else "❌" if status == "error" else "ℹ️"
+                st.session_state.history = [history_entry]
                 
-                with st.expander(f"{icon} [{phase}] {content[:50]}..."):
-                    st.markdown(f"**Content**: `{content}`")
-                    st.markdown(f"**Status**: {status}")
-                    
-                    if 'meta' in record and record['meta']:
-                        meta = record['meta']
-                        st.divider()
-                        st.caption("Details")
-                        
-                        # Causal Info (Rule)
-                        if 'rule' in meta:
-                            st.markdown(f"**Applied Rule**: `{meta['rule'].get('id', 'Unknown')}`")
-                            st.caption(meta['rule'].get('description', ''))
-                            
-                        # Fuzzy / Ambiguity Info
-                        if 'fuzzy_score' in meta:
-                            st.markdown("**Ambiguity Estimation**")
-                            score = meta['fuzzy_score']
-                            st.progress(score)
-                            st.caption(f"Similarity: {score:.3f} ({meta.get('fuzzy_label', 'Unknown')})")
-                            
-                        # Decision Info
-                        if 'decision_action' in meta:
-                            st.markdown(f"**Decision**: {meta['decision_action']} (Utility: {meta.get('decision_utility', 0):.2f})")
+            except Exception as e:
+                st.error(f"System Error: {e}")
 
-    with tab_scenario:
-        st.caption("Parallel computation results")
-        if st.button("Clear Scenario Logs", key="clear_scenario"):
-            st.session_state.scenario_logs = []
-            st.rerun()
-            
-        scen_container = st.container(height=600)
-        with scen_container:
-            for log in st.session_state.scenario_logs:
-                if log.startswith("{"):
-                    st.json(json.loads(log))
-                else:
-                    st.text(log)
+with col_results:
+    st.subheader("📊 Test Report")
+    
+    if st.session_state.history:
+        entry = st.session_state.history[-1]
+        
+        steps = entry.get("steps", [])
+        if not steps:
+            st.info("No steps recorded.")
+        else:
+            for i, step in enumerate(steps):
+                render_test_report(i + 1, step)
+    else:
+        st.info("Run a test to see results.")

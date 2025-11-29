@@ -450,3 +450,197 @@ class SymbolicEngine:
             return float(value)
         except Exception:
             return value
+
+    def match_structure(self, expression: str, pattern: str) -> Dict[str, Any] | None:
+        """
+        Matches an expression against a pattern using SymPy's unification.
+        Returns a dictionary of bindings if the structure matches, or None.
+        """
+        if self._fallback is not None:
+            return None 
+
+        try:
+            from sympy import Wild
+            from sympy.parsing.sympy_parser import parse_expr
+            
+            local_dict = {"e": _sympy.E, "pi": _sympy.pi}
+            
+            # 1. Parse the concrete expression
+            # Use evaluate=True to allow basic simplification like (x-y)*(x-y) -> (x-y)**2
+            # This is crucial for matching a*a against (x-y)^2 if pattern is a**2,
+            # OR matching a**2 against (x-y)*(x-y).
+            # However, we want to preserve structure.
+            # The issue is that (x-y)*(x-y) IS (x-y)**2 mathematically, but structurally it's Mul vs Pow.
+            # If the rule is a**2 -> a*a, we expect:
+            # Before: (x-y)**2 (Pow) matches a**2 (Pow) -> a=(x-y)
+            # After: (x-y)*(x-y) (Mul) matches a*a (Mul) -> a=(x-y)
+            
+            # But SymPy parses (x-y)*(x-y) as (x-y)**2 automatically even with evaluate=False?
+            # No, evaluate=False should preserve it.
+            # Let's try parsing with evaluate=False.
+            expr_internal = parse_expr(expression, evaluate=False, local_dict=local_dict)
+            
+            # 2. Prepare the pattern with Wild symbols
+            wild_names = ['a', 'b', 'c', 'd', 'n', 'm', 'x', 'y', 'z']
+            pattern_locals = local_dict.copy()
+            
+            for name in wild_names:
+                # exclude=[] allows matching anything
+                w = Wild(name, exclude=[]) 
+                pattern_locals[name] = w
+                
+            pattern_internal = parse_expr(pattern, evaluate=False, local_dict=pattern_locals)
+            
+            # 3. Perform matching
+            
+            # Strict Structure Check:
+            # If pattern is a specific operation (Add, Mul, Pow), the expression MUST be compatible.
+            # Incompatible pairs: (Mul, Add), (Add, Mul), (Pow, Add), (Add, Pow).
+            # Compatible: Same type, or one is Atom (Symbol, Number), or (Mul, Pow) pair.
+            if not isinstance(pattern_internal, Wild):
+                from sympy import Add, Mul, Pow, Atom
+                
+                p_type = type(pattern_internal)
+                e_type = type(expr_internal)
+                
+                # If expression is Atom (e.g. Symbol, Number), it can match any operation (simplification)
+                if isinstance(expr_internal, Atom):
+                    pass
+                elif p_type != e_type:
+                    # Check for incompatible pairs
+                    is_incompatible = False
+                    
+                    if isinstance(pattern_internal, Mul) and isinstance(expr_internal, Add):
+                        is_incompatible = True
+                    elif isinstance(pattern_internal, Add) and isinstance(expr_internal, Mul):
+                        is_incompatible = True
+                    elif isinstance(pattern_internal, Pow) and isinstance(expr_internal, Add):
+                        is_incompatible = True
+                    elif isinstance(pattern_internal, Add) and isinstance(expr_internal, Pow):
+                        is_incompatible = True
+                        
+                    if is_incompatible:
+                        # print(f"DEBUG: Structure mismatch. Expr: {e_type}, Pattern: {p_type}")
+                        return None
+
+            matches = expr_internal.match(pattern_internal)
+            
+            if matches is not None:
+                # print(f"DEBUG: match_structure success. Expr: {expr_internal} ({type(expr_internal)}), Pattern: {pattern_internal} ({type(pattern_internal)})")
+                return {k.name: v for k, v in matches.items()}
+            
+            # Fallback: Argument-wise matching for Mul
+            # If both are Mul and have same number of args (e.g. 2), try matching args individually.
+            # This handles (x+3)(x-3) vs (a+b)(a-b).
+            from sympy import Mul
+            if isinstance(expr_internal, Mul) and isinstance(pattern_internal, Mul):
+                if len(expr_internal.args) == len(pattern_internal.args) == 2:
+                    e1, e2 = expr_internal.args
+                    p1, p2 = pattern_internal.args
+                    
+                    # Helper to merge bindings
+                    def merge(b1, b2):
+                        if b1 is None or b2 is None: return None
+                        merged = b1.copy()
+                        for k, v in b2.items():
+                            if k in merged:
+                                if merged[k] != v: return None # Conflict
+                            else:
+                                merged[k] = v
+                        return merged
+
+                    # Helper to validate binding against other pair
+                    def validate(binding, expr, pattern):
+                        if binding is None: return False
+                        try:
+                            subbed = pattern.subs(binding)
+                            # print(f"DEBUG: Validate subbed={subbed}, expr={expr}, eq={subbed.equals(expr)}")
+                            return subbed.equals(expr)
+                        except Exception as e:
+                            # print(f"DEBUG: Validate exception: {e}")
+                            return False
+
+                    # Try Permutation 1: e1->p1, e2->p2
+                    m1 = e1.match(p1)
+                    m2 = e2.match(p2)
+                    merged1 = merge(m1, m2)
+                    
+                    if merged1 is not None:
+                        return {k.name: v for k, v in merged1.items()}
+                    
+                    # Cross-validation for Permutation 1
+                    # If merge failed, check if m1 works for (e2, p2) or m2 works for (e1, p1)
+                    if m1 and validate(m1, e2, p2):
+                        return {k.name: v for k, v in m1.items()}
+                    if m2 and validate(m2, e1, p1):
+                        return {k.name: v for k, v in m2.items()}
+                        
+                    # Try Permutation 2: e1->p2, e2->p1
+                    m3 = e1.match(p2)
+                    m4 = e2.match(p1)
+                    merged2 = merge(m3, m4)
+                    
+                    if merged2 is not None:
+                        return {k.name: v for k, v in merged2.items()}
+                        
+                    # Cross-validation for Permutation 2
+                    if m3 and validate(m3, e2, p1):
+                        return {k.name: v for k, v in m3.items()}
+                    if m4 and validate(m4, e1, p2):
+                        return {k.name: v for k, v in m4.items()}
+
+            # Special handling for a*a pattern (Mul(a, a)) matching Pow(b, 2) or Mul(b, b)
+            # This is needed because SymPy's match is strict about structure but we want to allow
+            # a*a to match a^2 or (x-y)(x-y).
+            from sympy import Pow
+            if isinstance(pattern_internal, Mul) and len(pattern_internal.args) == 2 and pattern_internal.args[0] == pattern_internal.args[1]:
+                # Pattern is a * a
+                wild_a = pattern_internal.args[0]
+                if isinstance(wild_a, Wild):
+                    # Check if expression is Pow(b, 2)
+                    if isinstance(expr_internal, Pow) and expr_internal.args[1] == 2:
+                        return {wild_a.name: expr_internal.args[0]}
+                    # Check if expression is Mul(b, b)
+                    if isinstance(expr_internal, Mul) and len(expr_internal.args) == 2 and expr_internal.args[0] == expr_internal.args[1]:
+                        return {wild_a.name: expr_internal.args[0]}
+                        
+            # Special handling for a**2 pattern matching Mul(b, b)
+            if isinstance(pattern_internal, Pow) and pattern_internal.args[1] == 2:
+                wild_a = pattern_internal.args[0]
+                if isinstance(wild_a, Wild):
+                     if isinstance(expr_internal, Mul) and len(expr_internal.args) == 2 and expr_internal.args[0] == expr_internal.args[1]:
+                        return {wild_a.name: expr_internal.args[0]}
+
+            return None
+            
+        except Exception:
+            return None
+
+    def get_top_operator(self, expr: str) -> str | None:
+        """Returns the name of the top-level operator (Add, Mul, Pow, etc.)."""
+        try:
+            if self._fallback is not None:
+                tree = self._fallback.parse(expr)
+                node = tree.body
+            else:
+                # Use Python's AST for consistency and speed, as we just want structure
+                tree = py_ast.parse(expr.replace("^", "**"), mode="eval")
+                node = tree.body
+                
+            if isinstance(node, py_ast.BinOp):
+                return type(node.op).__name__
+            if isinstance(node, py_ast.UnaryOp):
+                return type(node.op).__name__
+            if isinstance(node, py_ast.Call):
+                if isinstance(node.func, py_ast.Name):
+                    return node.func.id
+                return "Call"
+            if isinstance(node, py_ast.Num) or isinstance(node, py_ast.Constant):
+                return "Number"
+            if isinstance(node, py_ast.Name):
+                return "Symbol"
+            return "Other"
+        except Exception:
+            return None
+
+

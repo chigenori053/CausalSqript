@@ -1,0 +1,29 @@
+- id: ALG-EXP-001
+  domain: algebra
+  category: expansion
+  pattern_before: "a * (b + c)"
+  pattern_after: "a * b + a * c"
+  description: "分配法則（展開）"
+
+- id: ALG-EXP-002
+  domain: algebra
+  category: expansion
+  pattern_before: "(a + b) * (c + d)"
+  pattern_after: "a * c + a * d + b * c + b * d"
+  description: "多項式の積の展開"
+
+- id: ALG-EXP-003
+  domain: algebra
+  category: expansion
+  pattern_before: "(a + b)**2"
+  pattern_after: "a**2 + 2*a*b + b**2"
+  description: "和の平方公式（展開）"
+  priority: 60
+
+- id: ALG-EXP-004
+  domain: algebra
+  category: expansion
+  pattern_before: "(a - b)**2"
+  pattern_after: "a**2 - 2*a*b + b**2"
+  description: "差の平方公式（展開）"
+  priority: 65
