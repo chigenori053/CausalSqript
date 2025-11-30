@@ -23,6 +23,10 @@ class LearningLogEntry:
     status: str  # e.g. "verified", "info"
     metadata: dict[str, Any] = field(default_factory=dict)
     timestamp: str = field(default_factory=_now_iso)
+    scope_id: str = "root"
+    parent_scope_id: str | None = None
+    depth: int = 0
+    is_redundant: bool = False
 
 
 class LearningLogger:
@@ -42,6 +46,10 @@ class LearningLogger:
         rule_id: str | None,
         status: str,
         metadata: dict[str, Any] | None = None,
+        scope_id: str = "root",
+        parent_scope_id: str | None = None,
+        depth: int = 0,
+        is_redundant: bool = False,
     ) -> None:
         entry = LearningLogEntry(
             step_number=step_number,
@@ -52,6 +60,10 @@ class LearningLogger:
             rule_id=rule_id,
             status=status,
             metadata=metadata or {},
+            scope_id=scope_id,
+            parent_scope_id=parent_scope_id,
+            depth=depth,
+            is_redundant=is_redundant,
         )
         self._entries.append(entry)
 

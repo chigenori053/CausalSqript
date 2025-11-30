@@ -2,17 +2,59 @@
 
 from __future__ import annotations
 
+from dataclasses import dataclass
 import json
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any, Dict, List, Optional
 
 
+@dataclass
+class LearningLogEntry:
+    step_number: int
+    phase: str
+    expression: str | None
+    rendered: str | None
+    status: str
+    rule_id: str | None
+    meta: Dict[str, Any]
+    timestamp: str
+    scope_id: str = "main"
+    parent_scope_id: str | None = None
+    depth: int = 0
+    is_redundant: bool = False
+
+    def __getitem__(self, key: str) -> Any:
+        """Allow dict-style access for compatibility with tests and formatters."""
+        if hasattr(self, key):
+            return getattr(self, key)
+        data = self.to_dict()
+        if key in data:
+            return data[key]
+        raise KeyError(key)
+
+    def to_dict(self) -> Dict[str, Any]:
+        return {
+            "step_index": self.step_number,
+            "timestamp": self.timestamp,
+            "phase": self.phase,
+            "expression": self.expression,
+            "rendered": self.rendered,
+            "status": self.status,
+            "rule_id": self.rule_id,
+            "meta": self.meta,
+            "scope_id": self.scope_id,
+            "parent_scope_id": self.parent_scope_id,
+            "depth": self.depth,
+            "is_redundant": self.is_redundant,
+        }
+
+
 class LearningLogger:
     """Collects and serializes step-by-step execution logs (v2 format)."""
 
     def __init__(self) -> None:
-        self.records: List[Dict[str, Any]] = []
+        self.records: List[LearningLogEntry] = []
         self._step_index = 0
 
     def record(
@@ -25,26 +67,35 @@ class LearningLogger:
         rule_id: str | None = None,
         meta: Optional[Dict[str, Any]] = None,
         step_index: int | None = None,
+        scope_id: str = "main",
+        parent_scope_id: str | None = None,
+        depth: int = 0,
+        is_redundant: bool = False,
     ) -> None:
         idx = step_index if step_index is not None else self._step_index
         if step_index is None:
             self._step_index += 1
-        self.records.append(
-            {
-                "step_index": idx,
-                "timestamp": datetime.now(timezone.utc).isoformat(),
-                "phase": phase,
-                "expression": expression,
-                "rendered": rendered,
-                "status": status,
-                "rule_id": rule_id,
-                "meta": meta or {},
-            }
+        
+        entry = LearningLogEntry(
+            step_number=idx,
+            phase=phase,
+            expression=expression,
+            rendered=rendered,
+            status=status,
+            rule_id=rule_id,
+            meta=meta or {},
+            timestamp=datetime.now(timezone.utc).isoformat(),
+            scope_id=scope_id,
+            parent_scope_id=parent_scope_id,
+            depth=depth,
+            is_redundant=is_redundant,
         )
+        self.records.append(entry)
 
     def to_list(self) -> List[dict[str, Any]]:
-        return list(self.records)
+        return [r.to_dict() for r in self.records]
 
     def write(self, path: Path) -> None:
         path.parent.mkdir(parents=True, exist_ok=True)
-        path.write_text(json.dumps(self.records, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
+        data = self.to_list()
+        path.write_text(json.dumps(data, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")

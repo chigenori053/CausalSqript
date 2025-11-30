@@ -148,6 +148,49 @@ class SymbolicEngine:
     def has_sympy(self) -> bool:
         return self._fallback is None
 
+    def to_string(self, value: Any, *, latex: bool = False) -> str:
+        """
+        Normalize values (especially fractions) into a consistent string form.
+        - Fraction(3, 4) -> "3/4" or "\\frac{3}{4}" when latex=True
+        - SymPy Rational -> same as above
+        """
+        try:
+            if isinstance(value, Fraction):
+                if latex:
+                    return r"\frac{{{}}}{{{}}}".format(value.numerator, value.denominator)
+                return f"{value.numerator}/{value.denominator}" if value.denominator != 1 else str(value.numerator)
+            if _sympy and isinstance(value, _sympy.Rational):
+                if latex:
+                    return _sympy.latex(value)
+                return f"{value.p}/{value.q}" if value.q != 1 else str(value.p)
+        except Exception:
+            pass
+        return str(value)
+
+    def is_numeric(self, expr: Any) -> bool:
+        """Checks if the expression is purely numeric (no free symbols)."""
+        if self._fallback is not None:
+            # Fallback: check if symbols() returns empty set
+            if isinstance(expr, str):
+                return not bool(self._fallback.symbols(expr))
+            return True # Assume non-string is numeric value
+            
+        try:
+            # If it's a string, convert to internal first
+            if isinstance(expr, str):
+                # Avoid eager simplification which may remove symbols (e.g., -x*y + x*y -> 0).
+                local_dict = {"e": _sympy.E, "pi": _sympy.pi}
+                internal = _sympy.sympify(expr, locals=local_dict, evaluate=False)
+            else:
+                internal = expr
+                
+            # Check free symbols
+            if hasattr(internal, "free_symbols"):
+                return not bool(internal.free_symbols)
+            return True # Constants/Numbers have no free symbols
+        except Exception:
+            return False
+
     def to_internal(self, expr: str) -> Any:
         if self._fallback is not None:
             return self._fallback.parse(expr)
@@ -295,7 +338,7 @@ class SymbolicEngine:
             except (InvalidExprError, EvaluationError):
                 return expr
         internal = self.to_internal(expr)
-        return str(_sympy.simplify(internal))
+        return self.to_string(_sympy.simplify(internal))
 
     def to_latex(self, expr: str) -> str:
         """
@@ -642,5 +685,3 @@ class SymbolicEngine:
             return "Other"
         except Exception:
             return None
-
-

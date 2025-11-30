@@ -97,10 +97,12 @@ def test_knowledge_matching():
             
     print(f"\nSummary: {passed}/{len(test_cases)} tests passed.")
     
-    if passed == len(test_cases):
+    # When run under pytest, fail the test if any case did not match.
+    assert passed == len(test_cases), f"{passed}/{len(test_cases)} knowledge rules matched"
+
+    # Preserve script-style exit codes when executed directly.
+    if __name__ == "__main__":
         sys.exit(0)
-    else:
-        sys.exit(1)
 
 if __name__ == "__main__":
     test_knowledge_matching()

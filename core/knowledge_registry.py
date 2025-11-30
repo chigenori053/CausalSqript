@@ -24,6 +24,7 @@ class KnowledgeNode:
     pattern_after: str
     description: str
     priority: int = 50
+    condition: str | None = None
     extra: Dict[str, Any] | None = None
 
     def to_metadata(self) -> Dict[str, Any]:
@@ -35,6 +36,7 @@ class KnowledgeNode:
             "pattern_after": self.pattern_after,
             "description": self.description,
             "priority": self.priority,
+            "condition": self.condition,
         }
         if self.extra:
             data.update(self.extra)
@@ -75,7 +77,8 @@ class KnowledgeRegistry:
                         pattern_after=p_after,
                         description=entry.get("description", ""),
                         priority=int(entry.get("priority", 50)),
-                        extra={k: v for k, v in entry.items() if k not in {"id", "domain", "category", "pattern_before", "pattern_after", "description", "priority"}},
+                        condition=entry.get("condition"),
+                        extra={k: v for k, v in entry.items() if k not in {"id", "domain", "category", "pattern_before", "pattern_after", "description", "priority", "condition"}},
                     )
                     nodes.append(node)
             except Exception as e:
@@ -116,9 +119,18 @@ class KnowledgeRegistry:
         2. Binding Consistency (_is_consistent)
         3. Equivalence Verification (is_equiv)
         """
-        candidates = []
+        best_match: KnowledgeNode | None = None
+        best_after_match = False
         
+        # Pre-check: Is the input expression numeric?
+        is_before_numeric = self.engine.is_numeric(before)
+
         for node in self.nodes:
+            # Domain Strictness:
+            # Algebraic rules should NOT match pure numeric expressions.
+            if is_before_numeric and node.domain == "algebra":
+                continue
+
             # Phase 1: Structural Filtering
             # Match 'before' against the rule's input pattern
             bind_before = self.engine.match_structure(before, node.pattern_before)
@@ -128,18 +140,16 @@ class KnowledgeRegistry:
             if bind_before is None:
                 # print(f"DEBUG: {node.id} failed match_structure(before)")
                 continue
-                
-            # Match 'after' against the rule's output pattern
-            bind_after = self.engine.match_structure(after, node.pattern_after)
             
-            if bind_after is None:
-                # Special handling for a*a vs a**2 mismatch
-                # If the rule expects a*a (Mul) but we got a**2 (Pow), or vice versa.
-                # This often happens with SymPy auto-simplification.
-                # We can try to match with evaluate=True or just check equivalence if structure is "close enough".
-                # For now, let's rely on strict match but maybe we need to relax it for ALG-POW-001.
-                # print(f"DEBUG: {node.id} failed match_structure(after)")
-                continue
+            # Phase 1.5: Condition Check
+            if node.condition:
+                if not self._check_condition(node.condition, bind_before):
+                    continue
+
+            # Match 'after' against the rule's output pattern
+            bind_after_raw = self.engine.match_structure(after, node.pattern_after)
+            after_structural_match = bind_after_raw is not None
+            bind_after = bind_after_raw or {}
                 
             # Phase 2: Binding Consistency
             # Check if variables bound in both before and after are consistent
@@ -150,21 +160,44 @@ class KnowledgeRegistry:
                 
             # Phase 3: Equivalence Verification
             try:
+                # Special handling for calculation rules where output is a new variable (e.g. 'c')
+                if node.category == "calculation":
+                    if self.engine.is_equiv(before, after):
+                        best_match = node
+                        best_after_match = after_structural_match
+                    continue
+
                 str_bindings = {k: str(v) for k, v in bind_before.items()}
+                str_bindings.update({k: str(v) for k, v in bind_after.items()})
                 expected_after = self.engine.substitute(node.pattern_after, str_bindings)
                 
                 if self.engine.is_equiv(after, expected_after):
-                    candidates.append(node)
-                    return node
-                else:
-                    # print(f"DEBUG: {node.id} failed equivalence. Expected: {expected_after}, Actual: {after}")
-                    pass
+                    if best_match is None:
+                        best_match = node
+                        best_after_match = after_structural_match
+                    elif after_structural_match and not best_after_match:
+                        # Prefer rules whose output pattern structurally matches the 'after' expression.
+                        best_match = node
+                        best_after_match = True
                     
             except Exception as e:
                 # print(f"DEBUG: {node.id} exception: {e}")
                 continue
                 
-        return None
+        return best_match
+
+    def _check_condition(self, condition: str, bindings: Dict[str, Any]) -> bool:
+        """Evaluates a condition string against bindings."""
+        try:
+            # Prepare context
+            context = bindings.copy()
+            context["is_numeric"] = self.engine.is_numeric
+            
+            # Safe(r) eval - only allow specific functions/variables
+            # For now, we trust the rule files as they are part of the codebase.
+            return bool(eval(condition, {"__builtins__": {}}, context))
+        except Exception:
+            return False
 
     def _is_consistent(self, bind1: Dict[str, Any], bind2: Dict[str, Any]) -> bool:
         """
@@ -188,4 +221,3 @@ class KnowledgeRegistry:
                     return False
                     
         return True
-

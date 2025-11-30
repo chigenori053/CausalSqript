@@ -1,0 +1,17 @@
+- id: ARITH-CALC-ADD
+  domain: arithmetic
+  category: calculation
+  pattern_before: "a + b"
+  pattern_after: "c"
+  description: "数値の加算"
+  priority: 90
+  condition: "is_numeric(a) and is_numeric(b)"
+
+- id: ARITH-CALC-POW
+  domain: arithmetic
+  category: calculation
+  pattern_before: "a**b"
+  pattern_after: "c"
+  description: "べき乗の計算"
+  priority: 90
+  condition: "is_numeric(a) and is_numeric(b)"

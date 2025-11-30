@@ -6,6 +6,7 @@ from dataclasses import dataclass
 from textwrap import dedent
 from typing import Iterable, List
 import re
+import difflib
 
 from . import ast_nodes as ast
 from .errors import SyntaxError
@@ -136,7 +137,20 @@ class Parser:
                 nodes.append(self._parse_sub_problem(rest.strip(), parsed.number))
                 index += 1
             else:
-                raise SyntaxError(f"Unsupported statement on line {parsed.number}: {raw.strip()}")
+                # Fuzzy matching for better error messages
+                known_keywords = [
+                    "problem", "step", "end", "explain", "meta", "config", 
+                    "mode", "prepare", "counterfactual", "scenario", "sub_problem"
+                ]
+                # Extract the first word as the potential keyword
+                potential_keyword = raw.strip().split(":")[0].strip().lower()
+                matches = difflib.get_close_matches(potential_keyword, known_keywords, n=1, cutoff=0.6)
+                
+                msg = f"Unsupported statement on line {parsed.number}: {raw.strip()}"
+                if matches:
+                    msg += f" Did you mean '{matches[0]}'?"
+                
+                raise SyntaxError(msg)
 
         program = ast.ProgramNode(line=None, body=nodes)
         i18n = get_language_pack()

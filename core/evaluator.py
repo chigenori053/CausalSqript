@@ -157,6 +157,52 @@ class Evaluator:
         self._config: Dict[str, Any] = {}
         self._mode: str = "strict"
         self._context_stack: list[dict] = []
+        self._scope_stack: list[dict] = []
+        self._scope_counter: int = 0
+
+    def _log(
+        self,
+        *,
+        phase: str,
+        expression: str | None,
+        rendered: str | None,
+        status: str,
+        rule_id: str | None = None,
+        meta: Optional[Dict[str, Any]] = None,
+    ) -> None:
+        current_scope = self._scope_stack[-1] if self._scope_stack else None
+        scope_id = current_scope["id"] if current_scope else "main"
+        parent_scope_id = current_scope["parent_id"] if current_scope else None
+        depth = len(self._scope_stack)
+        # Detect consecutive duplicates; if found, mark prior as redundant and skip logging.
+        if self.learning_logger.records:
+            last = self.learning_logger.records[-1]
+            if (
+                last.phase == phase
+                and last.expression == expression
+                and getattr(last, "rendered", rendered) == rendered
+                and last.status == status
+                and getattr(last, "scope_id", scope_id) == scope_id
+                and getattr(last, "rule_id", rule_id) == rule_id
+                and (getattr(last, "meta", {}) or {}) == (meta or {})
+            ):
+                try:
+                    last.is_redundant = True
+                except Exception:
+                    pass
+                return
+        self.learning_logger.record(
+            phase=phase,
+            expression=expression,
+            rendered=rendered,
+            status=status,
+            rule_id=rule_id,
+            meta=meta,
+            scope_id=scope_id,
+            parent_scope_id=parent_scope_id,
+            depth=depth,
+            is_redundant=False,
+        )
 
     @property
     def _symbolic_engine(self) -> SymbolicEngine:
@@ -226,7 +272,7 @@ class Evaluator:
             )
         self._current_problem_expr = node.expr
         self._last_expr_raw = node.expr
-        self.learning_logger.record(
+        self._log(
             phase="problem",
             expression=node.expr,
             rendered=f"Problem: {node.expr}",
@@ -267,7 +313,7 @@ class Evaluator:
                     "after": result.get("after"),
                 }
             )
-        self.learning_logger.record(
+        self._log(
             phase="step",
             expression=node.expr,
             rendered=f"Step ({node.step_id or 'unnamed'}): {node.expr}",
@@ -320,7 +366,7 @@ class Evaluator:
                 }
             )
         rendered = "End: done" if node.is_done else f"End: {node.expr}"
-        self.learning_logger.record(
+        self._log(
             phase="end",
             expression=node.expr if not node.is_done else None,
             rendered=rendered,
@@ -343,7 +389,17 @@ class Evaluator:
             
             self.engine.set(new_parent_expr)
             
-            self.learning_logger.record(
+            # Scope Management: Pop and Log
+            if self._scope_stack:
+                ended_scope = self._scope_stack.pop()
+                self._log(
+                    phase="scope_end",
+                    expression=final_sub_result,
+                    rendered=f"Ending scope: {ended_scope['id']}",
+                    status="ok"
+                )
+
+            self._log(
                 phase="sub_problem_end",
                 expression=final_sub_result,
                 rendered=f"Sub-problem done. Return to: {new_parent_expr}",
@@ -366,7 +422,7 @@ class Evaluator:
                 rendered="Explain before problem.",
                 exc=exc,
             )
-        self.learning_logger.record(
+        self._log(
             phase="explain",
             expression=None,
             rendered=node.text,
@@ -375,7 +431,7 @@ class Evaluator:
 
     def _handle_meta(self, node: ast.MetaNode) -> None:
         self._meta.update(node.data)
-        self.learning_logger.record(
+        self._log(
             phase="meta",
             expression=None,
             rendered=f"Meta: {node.data}",
@@ -385,7 +441,7 @@ class Evaluator:
 
     def _handle_config(self, node: ast.ConfigNode) -> None:
         self._config.update(node.options)
-        self.learning_logger.record(
+        self._log(
             phase="config",
             expression=None,
             rendered=f"Config: {node.options}",
@@ -395,7 +451,7 @@ class Evaluator:
 
     def _handle_mode(self, node: ast.ModeNode) -> None:
         self._mode = node.mode
-        self.learning_logger.record(
+        self._log(
             phase="mode",
             expression=None,
             rendered=f"Mode: {node.mode}",
@@ -415,7 +471,7 @@ class Evaluator:
                         name = name.strip()
                         value = self.engine.evaluate(expr.strip())
                         if isinstance(value, dict) and value.get("not_evaluatable"):
-                            self.learning_logger.record(
+                            self._log(
                                 phase="prepare",
                                 expression=stmt,
                                 rendered=f"Prepare skipped (not evaluatable): {stmt}",
@@ -423,7 +479,7 @@ class Evaluator:
                             )
                         else:
                             self.engine.set_variable(name, value)
-                            self.learning_logger.record(
+                            self._log(
                                 phase="prepare",
                                 expression=stmt,
                                 rendered=f"Prepare: {stmt}",
@@ -431,7 +487,7 @@ class Evaluator:
                             )
                     except (ValueError, EvaluationError) as exc:
                         if isinstance(exc, EvaluationError) and str(exc) == "not_evaluatable":
-                            self.learning_logger.record(
+                            self._log(
                                 phase="prepare",
                                 expression=stmt,
                                 rendered=f"Prepare skipped (not evaluatable): {stmt}",
@@ -445,7 +501,7 @@ class Evaluator:
                             exc=exc,
                         )
                 else:
-                    self.learning_logger.record(
+                    self._log(
                         phase="prepare",
                         expression=stmt,
                         rendered=f"Prepare: {stmt}",
@@ -453,7 +509,7 @@ class Evaluator:
                     )
             return
         if node.kind == "directive" and node.directive:
-            self.learning_logger.record(
+            self._log(
                 phase="prepare",
                 expression=node.directive,
                 rendered=f"Prepare directive: {node.directive}",
@@ -461,14 +517,14 @@ class Evaluator:
             )
             return
         if node.kind == "auto":
-            self.learning_logger.record(
+            self._log(
                 phase="prepare",
                 expression=None,
                 rendered="Prepare: auto",
                 status="ok",
             )
             return
-        self.learning_logger.record(
+        self._log(
             phase="prepare",
             expression=None,
             rendered="Prepare: (empty)",
@@ -498,7 +554,7 @@ class Evaluator:
             result = self.engine.evaluate(node.expect, context=assume_context)
             if isinstance(result, dict) and result.get("not_evaluatable"):
                 raise EvaluationError("not_evaluatable")
-            self.learning_logger.record(
+            self._log(
                 phase="counterfactual",
                 expression=node.expect,
                 rendered=f"Counterfactual: expect {node.expect} -> {result}",
@@ -521,7 +577,7 @@ class Evaluator:
                 if isinstance(value, dict) and value.get("not_evaluatable"):
                     # Warn but continue? Or fail?
                     # For scenarios, we probably want concrete values.
-                    self.learning_logger.record(
+                    self._log(
                         phase="scenario",
                         expression=expr,
                         rendered=f"Scenario assignment skipped (not evaluatable): {name} = {expr}",
@@ -538,7 +594,7 @@ class Evaluator:
                 )
         
         self.engine.add_scenario(node.name, context)
-        self.learning_logger.record(
+        self._log(
             phase="scenario",
             expression=None,
             rendered=f"Scenario added: {node.name}",
@@ -601,7 +657,24 @@ class Evaluator:
 
         self.engine.set(node.expr)
         
-        self.learning_logger.record(
+        # Scope Management
+        self._scope_counter += 1
+        new_scope_id = f"sub_{self._scope_counter}"
+        current_scope = self._scope_stack[-1] if self._scope_stack else None
+        parent_id = current_scope["id"] if current_scope else "main"
+        
+        # Log scope start
+        self._log(
+            phase="scope_start",
+            expression=node.expr,
+            rendered=f"Starting sub-problem scope: {new_scope_id}",
+            status="ok",
+            meta={"scope_id": new_scope_id, "parent_id": parent_id}
+        )
+        
+        self._scope_stack.append({"id": new_scope_id, "parent_id": parent_id})
+
+        self._log(
             phase="sub_problem",
             expression=getattr(node, "raw_expr", node.expr),
             rendered=f"Sub-problem: {getattr(node, 'raw_expr', node.expr)}",
@@ -632,7 +705,7 @@ class Evaluator:
             candidate_rule_id=None,
             explain_text=None,
         )
-        self.learning_logger.record(
+        self._log(
             phase="fuzzy",
             expression=candidate_expr,
             rendered=f"Fuzzy: {fuzzy_result['label'].value} ({fuzzy_result['score']['combined_score']:.2f})",
@@ -653,7 +726,7 @@ class Evaluator:
         exc: Exception,
     ) -> None:
         if isinstance(exc, EvaluationError) and str(exc) == "not_evaluatable":
-            self.learning_logger.record(
+            self._log(
                 phase=phase,
                 expression=expression,
                 rendered=rendered,
@@ -662,7 +735,7 @@ class Evaluator:
             )
             return
         self._fatal_error = True
-        self.learning_logger.record(
+        self._log(
             phase=phase,
             expression=expression,
             rendered=rendered,
