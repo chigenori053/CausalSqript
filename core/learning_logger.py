@@ -22,6 +22,7 @@ class LearningLogEntry:
     scope_id: str = "main"
     parent_scope_id: str | None = None
     depth: int = 0
+    context_type: str = "main"
     is_redundant: bool = False
 
     def __getitem__(self, key: str) -> Any:
@@ -70,6 +71,7 @@ class LearningLogger:
         scope_id: str = "main",
         parent_scope_id: str | None = None,
         depth: int = 0,
+        context_type: str = "main",
         is_redundant: bool = False,
     ) -> None:
         idx = step_index if step_index is not None else self._step_index
@@ -88,6 +90,7 @@ class LearningLogger:
             scope_id=scope_id,
             parent_scope_id=parent_scope_id,
             depth=depth,
+            context_type=context_type,
             is_redundant=is_redundant,
         )
         self.records.append(entry)

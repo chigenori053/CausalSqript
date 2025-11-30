@@ -169,11 +169,14 @@ class Evaluator:
         status: str,
         rule_id: str | None = None,
         meta: Optional[Dict[str, Any]] = None,
+        force_redundant: bool = False,
     ) -> None:
         current_scope = self._scope_stack[-1] if self._scope_stack else None
         scope_id = current_scope["id"] if current_scope else "main"
         parent_scope_id = current_scope["parent_id"] if current_scope else None
         depth = len(self._scope_stack)
+        context_type = "sub_problem" if depth > 0 else "main"
+        
         # Detect consecutive duplicates; if found, mark prior as redundant and skip logging.
         if self.learning_logger.records:
             last = self.learning_logger.records[-1]
@@ -184,6 +187,9 @@ class Evaluator:
                 and last.status == status
                 and getattr(last, "scope_id", scope_id) == scope_id
                 and getattr(last, "rule_id", rule_id) == rule_id
+                # Relax meta check: ignore small diffs or just check keys?
+                # For now, strict equality is fine, but maybe 'meta' is the culprit for "Fail".
+                # Let's assume strict equality is desired.
                 and (getattr(last, "meta", {}) or {}) == (meta or {})
             ):
                 try:
@@ -191,6 +197,7 @@ class Evaluator:
                 except Exception:
                     pass
                 return
+
         self.learning_logger.record(
             phase=phase,
             expression=expression,
@@ -201,7 +208,8 @@ class Evaluator:
             scope_id=scope_id,
             parent_scope_id=parent_scope_id,
             depth=depth,
-            is_redundant=False,
+            context_type=context_type,
+            is_redundant=force_redundant,
         )
 
     @property
@@ -313,6 +321,11 @@ class Evaluator:
                     "after": result.get("after"),
                 }
             )
+        # Check for no-op (redundant step)
+        is_noop = False
+        if is_valid and result.get("before") == result.get("after"):
+            is_noop = True
+
         self._log(
             phase="step",
             expression=node.expr,
@@ -320,6 +333,7 @@ class Evaluator:
             status=status,
             rule_id=result.get("rule_id"),
             meta=meta,
+            force_redundant=is_noop,
         )
         if status == "mistake":
             self._has_mistake = True

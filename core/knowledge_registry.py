@@ -131,6 +131,24 @@ class KnowledgeRegistry:
             if is_before_numeric and node.domain == "algebra":
                 continue
 
+            # Strict Rule Matching (AST Node Type Check)
+            # Check if the rule's pattern_before top-level operator matches the input's top-level operator.
+            # This prevents "Sticky Rule ID" (e.g., Pow matches Mul).
+            # We only check if we can reliably determine the operator.
+            expr_op = self.engine.get_top_operator(before)
+            pattern_op = self.engine.get_top_operator(node.pattern_before)
+            
+            # Allow mismatch if one is "Symbol" or "Number" or "Other" (generic),
+            # but enforce strictness if both are specific operators (Add, Mul, Pow).
+            if expr_op and pattern_op:
+                if expr_op in {"Add", "Mul", "Pow"} and pattern_op in {"Add", "Mul", "Pow"}:
+                    if expr_op != pattern_op:
+                        # Special case: a*a (Mul) can match a^2 (Pow) in some contexts, 
+                        # but the spec says "Pow -> Mul ... category: exponents ... prioritize".
+                        # If we are strict, we skip.
+                        # Let's trust the spec: "Pre-check: before and after top-level operators ... compare".
+                        continue
+
             # Phase 1: Structural Filtering
             # Match 'before' against the rule's input pattern
             bind_before = self.engine.match_structure(before, node.pattern_before)
