@@ -361,8 +361,18 @@ class SymbolicEngine:
         try:
             from sympy.parsing.sympy_parser import parse_expr
             local_dict = {"e": _sympy.E, "pi": _sympy.pi}
-            internal = parse_expr(expr, evaluate=False, local_dict=local_dict)
-            return _sympy.latex(internal)
+            # Normalize power symbol
+            expr_norm = expr.replace("^", "**")
+            internal = parse_expr(expr_norm, evaluate=False, local_dict=local_dict)
+            latex = _sympy.latex(internal, mul_symbol=r" \cdot ")
+            
+            # Clean up artifacts from evaluate=False
+            # 1. "1 \cdot " (e.g. 1/2 -> 1 * 1/2)
+            latex = latex.replace(r"1 \cdot ", "")
+            
+            # Clean up (-1) \cdot 0 -> -0 if desired, or just leave it explicit.
+            # User asked to "insert operators", so explicit \cdot is good.
+            return latex
         except Exception:
             return expr
 
