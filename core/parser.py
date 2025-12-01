@@ -172,17 +172,46 @@ class Parser:
         if content.strip().lower().startswith("problem:"):
             content = content.strip()[8:].strip()
             
+        # Check for "Name = Expression" syntax
+        name = None
+        if "=" in content:
+            # Simple check: split by first "="
+            parts = content.split("=", 1)
+            # Ensure left side is a valid identifier (simple check)
+            possible_name = parts[0].strip()
+            # Heuristic: Identifier should not contain complex chars like (, ), +, etc.
+            # But "x = 1" is also valid expression.
+            # We assume if it looks like an identifier, it is a name.
+            if re.match(r"^[A-Za-z_][A-Za-z0-9_]*$", possible_name):
+                name = possible_name
+                content = parts[1].strip()
+
         expr = self._normalize_expr(content)
         if not expr:
             raise SyntaxError(f"Problem expression required on line {number}.")
-        return ast.ProblemNode(expr=expr, line=number)
+        return ast.ProblemNode(expr=expr, name=name, line=number)
 
     def _parse_sub_problem(self, content: str, number: int) -> ast.SubProblemNode:
         raw_expr = content.strip()
+        
+        # Check for "Variable = Expression" syntax
+        target_variable = None
+        if "=" in content:
+            parts = content.split("=", 1)
+            possible_var = parts[0].strip()
+            if re.match(r"^[A-Za-z_][A-Za-z0-9_]*$", possible_var):
+                target_variable = possible_var
+                content = parts[1].strip()
+                # Update raw_expr to be just the expression part for consistency?
+                # Or keep full string? Spec says raw_expr is "Original expression text".
+                # Let's keep raw_expr as the full content for now, or maybe just the expression part?
+                # If we want to use it for display, maybe expression part is better.
+                # But let's stick to the expression part for normalization.
+        
         expr = self._normalize_expr(content)
         if not expr:
             raise SyntaxError(f"Sub-problem expression required on line {number}.")
-        return ast.SubProblemNode(expr=expr, raw_expr=raw_expr, line=number)
+        return ast.SubProblemNode(expr=expr, raw_expr=raw_expr, target_variable=target_variable, line=number)
 
     def _parse_step_legacy(self, content: str, step_id: str | None, number: int) -> ast.StepNode:
         # Handle potential double prefixing

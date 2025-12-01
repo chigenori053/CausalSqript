@@ -134,6 +134,7 @@ class ProgramNode(Node):
 @dataclass
 class ProblemNode(Node):
     expr: str = ""
+    name: str | None = None
     ast: object | None = None
 
 
@@ -150,6 +151,7 @@ class StepNode(Node):
 class SubProblemNode(Node):
     expr: str = ""
     raw_expr: str = ""
+    target_variable: str | None = None
 
 
 

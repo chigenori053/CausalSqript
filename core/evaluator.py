@@ -285,6 +285,7 @@ class Evaluator:
             expression=node.expr,
             rendered=f"Problem: {node.expr}",
             status="ok",
+            meta={"scope": node.name} if node.name else None,
         )
         self._state = "PROBLEM_SET"
 
@@ -396,10 +397,26 @@ class Evaluator:
             ctx = self._context_stack.pop()
             parent_expr = ctx.get("parent_expr_for_replace") or ctx["parent_expr"]
             target_sub = ctx["target_sub_expr"]
+            target_variable = ctx.get("target_variable")
             final_sub_result = result["after"]
 
-            # Substitute back
-            new_parent_expr = self._symbolic_engine.replace(parent_expr, target_sub, final_sub_result)
+            if target_variable:
+                # Variable Binding Mode
+                # Store the result in the variable
+                self.engine.set_variable(target_variable, final_sub_result)
+                # Restore parent expression (no replacement)
+                # But wait, if we restore parent_expr, we lose any progress made in parent context?
+                # Actually, sub-problems usually block parent progress.
+                # So restoring parent_expr (which was the state before sub-problem) is correct,
+                # because the sub-problem was "independent" or "side-calculation".
+                # However, if the sub-problem was meant to *advance* the parent, it should have been inline.
+                # Variable binding implies we are calculating something to be used *later*.
+                # So we restore the parent expression as is.
+                new_parent_expr = parent_expr
+            else:
+                # Legacy Mode (Inline Replacement)
+                # Substitute back
+                new_parent_expr = self._symbolic_engine.replace(parent_expr, target_sub, final_sub_result)
             
             self.engine.set(new_parent_expr)
             
@@ -654,19 +671,23 @@ class Evaluator:
             except Exception:
                 current_expr_for_check = current_expr
 
-        if not self._symbolic_engine.is_subexpression(node.expr, current_expr_for_check):
-             exc = InvalidStepError(f"'{node.expr}' is not a sub-expression of '{current_expr_for_check}'")
-             self._fatal(
-                 phase="sub_problem",
-                 expression=node.expr,
-                 rendered=f"Invalid sub-problem: {node.expr}",
-                 exc=exc
-             )
+        # If target_variable is set, this is a "Variable Binding" sub-problem (independent calculation).
+        # We skip the is_subexpression check.
+        if not node.target_variable:
+            if not self._symbolic_engine.is_subexpression(node.expr, current_expr_for_check):
+                 exc = InvalidStepError(f"'{node.expr}' is not a sub-expression of '{current_expr_for_check}'")
+                 self._fatal(
+                     phase="sub_problem",
+                     expression=node.expr,
+                     rendered=f"Invalid sub-problem: {node.expr}",
+                     exc=exc
+                 )
 
         self._context_stack.append({
             "parent_expr": current_expr,
             "parent_expr_for_replace": current_expr_for_check,
-            "target_sub_expr": node.expr
+            "target_sub_expr": node.expr,
+            "target_variable": node.target_variable,  # Store target variable
         })
 
         self.engine.set(node.expr)
