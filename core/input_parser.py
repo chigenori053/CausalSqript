@@ -25,6 +25,8 @@ class CausalScriptInputParser:
         "cosh",
         "tanh",
         "integrate",
+        "diff",
+        "Subs",
     }
     _KNOWN_CONSTANTS = {"pi", "e"}
     _UNARY_PRECEDERS = {"(", "+", "-", "*", "/", "**"}
@@ -39,11 +41,246 @@ class CausalScriptInputParser:
         tokens = CausalScriptInputParser.normalize_unicode(tokens)
         tokens = CausalScriptInputParser.normalize_power(tokens)
         tokens = CausalScriptInputParser.expand_mixed_numbers(tokens)
+        tokens = CausalScriptInputParser.normalize_brackets(tokens)
+        tokens = CausalScriptInputParser.normalize_derivatives(tokens)
         tokens = CausalScriptInputParser.normalize_integrals(tokens)
         tokens = CausalScriptInputParser.split_concatenated_identifiers(tokens)
         tokens = CausalScriptInputParser.insert_implicit_multiplication(tokens)
         tokens = CausalScriptInputParser.normalize_functions(tokens)
         return CausalScriptInputParser.to_string(tokens)
+
+    @staticmethod
+    def normalize_derivatives(tokens: List[str]) -> List[str]:
+        """
+        Convert derivative syntax:
+        1. Leibniz: d/dx f(x) -> diff(f(x), x)
+        2. Lagrange: f(x)' -> diff(f(x), x) (or inferred var)
+        """
+        while True:
+            changed = False
+            
+            # 1. Handle Lagrange notation (') first (postfix)
+            i = 0
+            while i < len(tokens):
+                if tokens[i] == "'":
+                    # Found prime. Identify operand.
+                    if i == 0:
+                        i += 1
+                        continue
+                    
+                    operand_end = i
+                    operand_start = i - 1
+                    
+                    if tokens[i-1] == ')':
+                        depth = 1
+                        j = i - 2
+                        while j >= 0:
+                            if tokens[j] == ')':
+                                depth += 1
+                            elif tokens[j] == '(':
+                                depth -= 1
+                                if depth == 0:
+                                    operand_start = j
+                                    if j > 0 and CausalScriptInputParser._is_identifier(tokens[j-1]):
+                                        operand_start = j - 1
+                                    break
+                            j -= 1
+                    
+                    operand_tokens = tokens[operand_start:operand_end]
+                    
+                    # Infer variable
+                    var = 'x'
+                    if '(' in operand_tokens and operand_tokens[-1] == ')':
+                         depth = 0
+                         arg_start = -1
+                         for k in range(len(operand_tokens)-1, -1, -1):
+                             if operand_tokens[k] == ')':
+                                 depth += 1
+                             elif operand_tokens[k] == '(':
+                                 depth -= 1
+                                 if depth == 0:
+                                     arg_start = k
+                                     break
+                         
+                         if arg_start != -1:
+                             args = operand_tokens[arg_start+1 : -1]
+                             if len(args) == 1 and CausalScriptInputParser._is_identifier(args[0]):
+                                 var = args[0]
+                    
+                    replacement = ['diff', '(',] + operand_tokens + [',', var, ')']
+                    tokens[operand_start : i+1] = replacement
+                    changed = True
+                    break # Restart loop to handle nesting safely
+                i += 1
+            
+            if changed:
+                continue
+
+            # 2. Handle Leibniz notation (d/dx) (prefix)
+            # Scan right-to-left to handle nesting naturally? 
+            # Or just use the 'changed' loop.
+            # Let's use the 'changed' loop and scan left-to-right, breaking on change.
+            i = 0
+            while i < len(tokens):
+                if tokens[i] == 'd' and i + 2 < len(tokens) and tokens[i+1] == '/':
+                    var_name = None
+                    consumed = 0
+                    
+                    if tokens[i+2].startswith('d') and len(tokens[i+2]) > 1:
+                        var_name = tokens[i+2][1:]
+                        consumed = 3
+                    elif i + 3 < len(tokens) and tokens[i+2] == 'd':
+                        var_name = tokens[i+3]
+                        consumed = 4
+                    
+                    if var_name:
+                        target_start = i + consumed
+                        target_tokens, next_idx = CausalScriptInputParser._consume_term(tokens, target_start)
+                        
+                        replacement = ['diff', '('] + target_tokens + [',', var_name, ')']
+                        tokens[i : next_idx] = replacement
+                        changed = True
+                        break # Restart loop
+                i += 1
+            
+            if not changed:
+                break
+                
+        return tokens
+
+    @staticmethod
+    def normalize_brackets(tokens: List[str]) -> List[str]:
+        """
+        Convert bracket notation for definite integrals:
+        [expr]_a^b -> (expr).subs(var, b) - (expr).subs(var, a)
+        """
+        while True:
+            changed = False
+            i = 0
+            while i < len(tokens):
+                if tokens[i] == '[':
+                    # Find matching closing bracket
+                    depth = 1
+                    j = i + 1
+                    while j < len(tokens):
+                        if tokens[j] == '[':
+                            depth += 1
+                        elif tokens[j] == ']':
+                            depth -= 1
+                            if depth == 0:
+                                break
+                        j += 1
+                    
+                    if j < len(tokens):
+                        # Found matching ']'. Check for bounds _a^b
+                        expr_tokens = tokens[i+1 : j]
+                        
+                        current = j + 1
+                        lower_bound = None
+                        upper_bound = None
+                        
+                        # Parse bounds (similar to integrals)
+                        found_bound = True
+                        while found_bound:
+                            found_bound = False
+                            if current < len(tokens) and tokens[current] == '_':
+                                 current += 1
+                                 bound_tokens, current = CausalScriptInputParser._consume_function_operand(tokens, current)
+                                 lower_bound = CausalScriptInputParser.to_string(bound_tokens)
+                                 found_bound = True
+                            elif current < len(tokens) and tokens[current].startswith('_') and len(tokens[current]) > 1:
+                                 lower_bound = tokens[current][1:]
+                                 current += 1
+                                 found_bound = True
+                            elif current < len(tokens) and tokens[current] == '**':
+                                 current += 1
+                                 bound_tokens, current = CausalScriptInputParser._consume_function_operand(tokens, current)
+                                 upper_bound = CausalScriptInputParser.to_string(bound_tokens)
+                                 found_bound = True
+                            elif current < len(tokens) and tokens[current] == '^': # Handle ^ as well if normalized
+                                 current += 1
+                                 bound_tokens, current = CausalScriptInputParser._consume_function_operand(tokens, current)
+                                 upper_bound = CausalScriptInputParser.to_string(bound_tokens)
+                                 found_bound = True
+
+                        if lower_bound is not None and upper_bound is not None:
+                            # Infer variable from expr_tokens
+                            var = CausalScriptInputParser._infer_variable(expr_tokens)
+                            expr_str = CausalScriptInputParser.to_string(expr_tokens)
+                            
+                            # Construct replacement: Subs(expr, var, upper) - Subs(expr, var, lower)
+                            # We return tokens.
+                            # Note: We need to be careful with tokenization of the replacement string.
+                            # It's safer to construct the string and tokenize it, or build tokens manually.
+                            # Let's build a string and tokenize it, as it's complex.
+                            
+                            replacement_str = f"(Subs({expr_str}, {var}, {upper_bound}) - Subs({expr_str}, {var}, {lower_bound}))"
+                            replacement_tokens = CausalScriptInputParser.tokenize(replacement_str)
+                            
+                            tokens[i : current] = replacement_tokens
+                            changed = True
+                            break
+                i += 1
+            
+            if not changed:
+                break
+        return tokens
+
+    @staticmethod
+    def _infer_variable(tokens: List[str]) -> str:
+        """Heuristic to infer the variable of integration/differentiation."""
+        identifiers = set()
+        for t in tokens:
+            if CausalScriptInputParser._is_identifier(t) and t not in CausalScriptInputParser._KNOWN_FUNCTIONS and t not in CausalScriptInputParser._KNOWN_CONSTANTS:
+                identifiers.add(t)
+        
+        if len(identifiers) == 1:
+            return list(identifiers)[0]
+        if 'x' in identifiers:
+            return 'x'
+        if 't' in identifiers:
+            return 't'
+        return 'x' # Default
+
+    @staticmethod
+    def _consume_term(tokens: List[str], start: int) -> tuple[List[str], int]:
+        """
+        Consume a mathematical term:
+        - Single token (x, 1)
+        - Parenthesized group ((...))
+        - Function call (f(...))
+        - Power (term^exp)
+        """
+        if start >= len(tokens):
+            return ["0"], start
+            
+        # 1. Consume base
+        is_parens = tokens[start] == '('
+        base, index = CausalScriptInputParser._consume_function_operand(tokens, start)
+        
+        if is_parens:
+            # Restore parens if it was a group
+            base = ['('] + base + [')']
+        
+        # 2. Check for function call: Identifier followed by '('
+        # _consume_function_operand consumes 'sin' as a single token.
+        if len(base) == 1 and CausalScriptInputParser._is_identifier(base[0]):
+             if index < len(tokens) and tokens[index] == '(':
+                 args, index = CausalScriptInputParser._consume_function_operand(tokens, index)
+                 # Restore parens for function call
+                 base.append('(')
+                 base.extend(args)
+                 base.append(')')
+        
+        # 3. Check for power: '^' or '**'
+        if index < len(tokens):
+            if tokens[index] == '^' or tokens[index] == '**':
+                op = tokens[index]
+                exponent, index = CausalScriptInputParser._consume_function_operand(tokens, index + 1)
+                base.append(op)
+                base.extend(exponent)
+                
+        return base, index
 
     @staticmethod
     def normalize_integrals(tokens: List[str]) -> List[str]:
@@ -174,7 +411,7 @@ class CausalScriptInputParser:
                     tokens.append("*")
                     index += 1
                 continue
-            if char in "+-/^(),":
+            if char in "+-/^(),'[]":
                 tokens.append(char)
                 index += 1
                 continue

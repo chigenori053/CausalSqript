@@ -359,7 +359,9 @@ class SymbolicEngine:
             return latex
         
         try:
-            internal = self.to_internal(expr)
+            from sympy.parsing.sympy_parser import parse_expr
+            local_dict = {"e": _sympy.E, "pi": _sympy.pi}
+            internal = parse_expr(expr, evaluate=False, local_dict=local_dict)
             return _sympy.latex(internal)
         except Exception:
             return expr
