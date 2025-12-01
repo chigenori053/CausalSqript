@@ -340,20 +340,27 @@ class SymbolicEngine:
         internal = self.to_internal(expr)
         return self.to_string(_sympy.simplify(internal))
 
-    def to_latex(self, expr: str) -> str:
+    def to_latex(self, expr: str, context_domains: list[str] | None = None) -> str:
         """
         Convert an expression to its LaTeX representation.
         
         Args:
             expr: The expression string to convert.
+            context_domains: List of domains (e.g., ["algebra", "arithmetic"]) to guide rendering.
             
         Returns:
             LaTeX string representation.
         """
+        # Determine multiplication symbol based on context
+        mul_symbol = r" \cdot " # Default for arithmetic or unknown
+        if context_domains and "algebra" in context_domains:
+            # Implicit multiplication for algebra
+            mul_symbol = ""
+            
         if self._fallback is not None:
             # Fallback: basic conversion (e.g., * to \cdot, / to \frac)
             # This is a very simple approximation
-            latex = expr.replace("*", r" \cdot ").replace("pi", r"\pi")
+            latex = expr.replace("*", mul_symbol if mul_symbol else "").replace("pi", r"\pi")
             # Handle simple fractions if possible, but regex is tricky.
             # For now, return the expression with minor tweaks.
             return latex
@@ -364,14 +371,21 @@ class SymbolicEngine:
             # Normalize power symbol
             expr_norm = expr.replace("^", "**")
             internal = parse_expr(expr_norm, evaluate=False, local_dict=local_dict)
-            latex = _sympy.latex(internal, mul_symbol=r" \cdot ")
+            latex = _sympy.latex(internal, mul_symbol=mul_symbol)
             
             # Clean up artifacts from evaluate=False
             # 1. "1 \cdot " (e.g. 1/2 -> 1 * 1/2)
-            latex = latex.replace(r"1 \cdot ", "")
+            if mul_symbol.strip():
+                latex = latex.replace(f"1{mul_symbol}", "")
+            else:
+                # If implicit, it might look like "1 x" -> "x"
+                # But sympy usually handles 1*x -> x well.
+                # Check for "1 " at start?
+                pass
             
             # 2. Replace "\left(-1\right) \cdot" with "-" (e.g. (-1)*0 -> -0)
-            latex = latex.replace(r"\left(-1\right) \cdot ", "-")
+            if mul_symbol.strip():
+                 latex = latex.replace(rf"\left(-1\right){mul_symbol}", "-")
             
             # 3. Handle "+ -" -> "-" (e.g. + -0 -> - 0)
             latex = latex.replace(r"+ -", "- ")

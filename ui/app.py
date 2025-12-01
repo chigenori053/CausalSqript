@@ -58,7 +58,9 @@ def get_engines():
     
     val_engine = ValidationEngine(comp_engine, fuzzy_judge=fuzzy_judge)
     hint_engine = HintEngine(comp_engine)
-    formatter = LaTeXFormatter(sym_engine)
+    from core.classifier import ExpressionClassifier
+    classifier = ExpressionClassifier(sym_engine)
+    formatter = LaTeXFormatter(sym_engine, classifier)
     
     # Initialize Knowledge Registry
     # Point to the knowledge root directory

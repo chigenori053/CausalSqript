@@ -8,20 +8,26 @@ if TYPE_CHECKING:
     from .symbolic_engine import SymbolicEngine
     from .proof_engine import Step
 
+    from .classifier import ExpressionClassifier
+
 
 class LaTeXFormatter:
     """
     Formats mathematical expressions and proofs into LaTeX.
     """
 
-    def __init__(self, symbolic_engine: SymbolicEngine):
+    def __init__(self, symbolic_engine: SymbolicEngine, classifier: ExpressionClassifier | None = None):
         self.symbolic_engine = symbolic_engine
+        self.classifier = classifier
 
     def format_expression(self, expr: str) -> str:
         """
         Convert a single expression string to LaTeX.
         """
-        return self.symbolic_engine.to_latex(expr)
+        domains = []
+        if self.classifier:
+            domains = self.classifier.classify(expr)
+        return self.symbolic_engine.to_latex(expr, context_domains=domains)
 
     def format_step(self, step_index: int, expr: str, explanation: str) -> str:
         """
