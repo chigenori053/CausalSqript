@@ -554,7 +554,7 @@ class SymbolicEngine:
             expr_internal = parse_expr(expression, evaluate=False, local_dict=local_dict)
             
             # 2. Prepare the pattern with Wild symbols
-            wild_names = ['a', 'b', 'c', 'd', 'n', 'm', 'x', 'y', 'z']
+            wild_names = ['a', 'b', 'c', 'd', 'f', 'g', 'h', 'n', 'm', 'x', 'y', 'z']
             pattern_locals = local_dict.copy()
             
             for name in wild_names:

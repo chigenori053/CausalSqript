@@ -206,6 +206,34 @@ with st.sidebar:
         st.session_state.logs = []
         st.rerun()
 
+import graphviz
+
+# ... (existing imports)
+
+# --- Helper Functions ---
+
+def generate_scenarios(variables):
+    """Generates simple test scenarios based on variables."""
+    scenarios = {}
+    # Default test values
+    test_values = [1, 2, 0, -1]
+    
+    for i, val in enumerate(test_values):
+        scenario_name = f"Scenario {i+1}"
+        context = {}
+        for var in variables:
+            context[str(var)] = val # Simple strategy: all vars get same value
+            # We could vary them, but this is a start
+        scenarios[scenario_name] = context
+    return scenarios
+
+def render_test_report(step_index, step_data):
+    # ... (existing render_test_report code)
+    pass # I will not replace this function, just keeping the structure for context if needed, 
+         # but actually I need to replace the MAIN LOGIC below.
+
+# ... (existing code)
+
 # Main Input Area
 col_input, col_results = st.columns([1, 1])
 
@@ -251,13 +279,22 @@ end: x^2 - 4xy + 4y^2"""
                 
                 # Process Logs into History
                 logs = logger.to_list()
+                st.session_state.logs = logs # Store raw logs
+                
                 history_entry = {"steps": []}
                 
-                for record in logs:
+                # Graphviz Visualization Data
+                dot = graphviz.Digraph(comment='Calculation Tree')
+                dot.attr(rankdir='TB')
+                
+                previous_step_id = None
+                
+                for i, record in enumerate(logs):
                     if record['phase'] in ['problem', 'step', 'end']:
                         current_expr = str(record['expression']) if record['expression'] else ""
                         meta = record.get('meta', {})
                         
+                        # 1. Prepare Step Data for Report
                         step_data = {
                             "phase": record['phase'],
                             "latex": formatter.format_expression(current_expr) if current_expr else "",
@@ -266,29 +303,67 @@ end: x^2 - 4xy + 4y^2"""
                             "hint_data": None
                         }
                         
-                        # Extract Analysis
+                        # ... (Extract Analysis logic same as before)
                         if 'rule' in meta:
                             step_data['analysis']['rule'] = meta['rule']
-                        
                         if 'fuzzy_score' in meta:
                             step_data['analysis']['fuzzy_score'] = meta['fuzzy_score']
                             step_data['analysis']['fuzzy_label'] = meta.get('fuzzy_label')
-                        
                         if 'evaluated' in meta:
                             step_data['analysis']['evaluated'] = formatter.format_expression(str(meta['evaluated']))
-                            
                         if 'decision_action' in meta:
                             step_data['analysis']['decision_action'] = meta['decision_action']
                             step_data['analysis']['decision_utility'] = meta.get('decision_utility')
                             step_data['analysis']['decision_utils'] = meta.get('decision_utils')
-                            
-                        # Extract Hint
                         if 'hint' in meta:
                             step_data['hint_data'] = meta['hint']
                             
                         history_entry["steps"].append(step_data)
-                
+                        
+                        # 2. Graphviz Node Creation
+                        step_id = f"step_{i}"
+                        label = f"{record['phase'].upper()}\n{current_expr}"
+                        if record.get('status') != 'ok':
+                            dot.node(step_id, label, shape='box', style='filled', fillcolor='#ffcccc')
+                        else:
+                            dot.node(step_id, label, shape='box', style='filled', fillcolor='#e6f3ff')
+                            
+                        if previous_step_id:
+                            # Edge from previous step
+                            edge_label = meta.get('rule', {}).get('id', '')
+                            dot.edge(previous_step_id, step_id, label=edge_label)
+                        
+                        previous_step_id = step_id
+                        
+                        # 3. Parallel Verification (Scenario Evaluation)
+                        try:
+                            # Extract variables
+                            # We use internal sympy object to get free symbols
+                            internal_expr = comp_engine.symbolic_engine.to_internal(current_expr)
+                            if hasattr(internal_expr, 'free_symbols') and internal_expr.free_symbols:
+                                variables = internal_expr.free_symbols
+                                scenarios = generate_scenarios(variables)
+                                
+                                # Run parallel evaluation
+                                results = comp_engine.evaluate_in_scenarios(current_expr, scenarios)
+                                
+                                # Add scenario nodes
+                                for s_name, s_result in results.items():
+                                    s_id = f"{step_id}_{s_name}"
+                                    # Format result
+                                    res_str = str(s_result)
+                                    if isinstance(s_result, float):
+                                        res_str = f"{s_result:.2f}"
+                                        
+                                    dot.node(s_id, f"{s_name}\n{res_str}", shape='ellipse', style='dashed', fontsize='10')
+                                    dot.edge(step_id, s_id, style='dotted', arrowhead='none')
+                                    
+                        except Exception as e:
+                            # If symbol extraction or evaluation fails (e.g. syntax error), skip scenarios
+                            pass
+
                 st.session_state.history = [history_entry]
+                st.session_state.graph = dot # Store graph
                 
             except Exception as e:
                 st.error(f"System Error: {e}")
@@ -296,14 +371,29 @@ end: x^2 - 4xy + 4y^2"""
 with col_results:
     st.subheader("📊 Test Report")
     
-    if st.session_state.history:
-        entry = st.session_state.history[-1]
-        
-        steps = entry.get("steps", [])
-        if not steps:
-            st.info("No steps recorded.")
+    # Tabs for different views
+    tab1, tab2, tab3 = st.tabs(["Steps", "Visualization", "Raw Logs"])
+    
+    with tab1:
+        if st.session_state.history:
+            entry = st.session_state.history[-1]
+            steps = entry.get("steps", [])
+            if not steps:
+                st.info("No steps recorded.")
+            else:
+                for i, step in enumerate(steps):
+                    render_test_report(i + 1, step)
         else:
-            for i, step in enumerate(steps):
-                render_test_report(i + 1, step)
-    else:
-        st.info("Run a test to see results.")
+            st.info("Run a test to see results.")
+            
+    with tab2:
+        if "graph" in st.session_state:
+            st.graphviz_chart(st.session_state.graph)
+        else:
+            st.info("Run a test to generate visualization.")
+            
+    with tab3:
+        if st.session_state.logs:
+            st.json(st.session_state.logs)
+        else:
+            st.info("No logs available.")

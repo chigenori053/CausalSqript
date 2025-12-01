@@ -262,8 +262,18 @@ class KnowledgeRegistry:
         pattern_op = self.engine.get_top_operator(node.pattern_before)
         
         if expr_op and pattern_op:
-            arithmetic_ops = {"Add", "Sub", "Mul", "Mult", "Div", "Pow"}
-            if expr_op in arithmetic_ops and pattern_op in arithmetic_ops:
+            # Strict operators that must match exactly if present in the pattern
+            strict_ops = {"Add", "Sub", "Mul", "Mult", "Div", "Pow", "Integral", "Derivative", "Limit", "Subs"}
+            
+            # If the pattern expects a specific structure, the expression must match it.
+            # This prevents "Integral(...)" from matching "a + b" (Add).
+            if pattern_op in strict_ops:
+                if expr_op != pattern_op:
+                    return None
+            
+            # Also, if the expression is a strict op, but the pattern expects a different strict op
+            # (e.g. expr is Add, pattern is Mul), reject.
+            if expr_op in strict_ops and pattern_op in strict_ops:
                 if expr_op != pattern_op:
                     return None
 

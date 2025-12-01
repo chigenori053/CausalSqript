@@ -1,0 +1,53 @@
+# Integration Rules
+
+- id: CALC-INT-DEF
+  domain: calculus
+  category: definition
+  pattern_before: "Integral(f, (x, a, b))"
+  pattern_after: "Subs(Integral(f, x), x, b) - Subs(Integral(f, x), x, a)"
+  description: "Fundamental Theorem of Calculus (Definite Integral)"
+  priority: 100
+
+- id: CALC-INT-POW
+  domain: calculus
+  category: calculation
+  pattern_before: "Integral(x**n, x)"
+  pattern_after: "x**(n + 1) / (n + 1)"
+  description: "Power Rule for Integration"
+  priority: 90
+  condition: "n != -1"
+
+- id: CALC-INT-CONST
+  domain: calculus
+  category: simplification
+  pattern_before: "Integral(c * f, x)"
+  pattern_after: "c * Integral(f, x)"
+  description: "Constant Multiple Rule for Integration"
+  priority: 80
+  condition: "is_numeric(c) or (c.is_Symbol and c != x)"
+
+- id: CALC-INT-CONST-DEF
+  domain: calculus
+  category: simplification
+  pattern_before: "Integral(c * f, (x, a, b))"
+  pattern_after: "c * Integral(f, (x, a, b))"
+  description: "Constant Multiple Rule for Definite Integration"
+  priority: 80
+  condition: "is_numeric(c) or (c.is_Symbol and c != x)"
+
+- id: CALC-INT-SUM
+  domain: calculus
+  category: simplification
+  pattern_before: "Integral(f + g, x)"
+  pattern_after: "Integral(f, x) + Integral(g, x)"
+  description: "Sum Rule for Integration"
+  priority: 80
+
+- id: CALC-INT-CONST-VAL
+  domain: calculus
+  category: calculation
+  pattern_before: "Integral(c, x)"
+  pattern_after: "c * x"
+  description: "Integral of a constant"
+  priority: 85
+  condition: "is_numeric(c)"
