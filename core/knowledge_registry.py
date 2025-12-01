@@ -43,6 +43,15 @@ class KnowledgeNode:
         return data
 
 
+@dataclass
+class RuleMap:
+    id: str
+    name: str
+    description: str
+    priority: int
+    rules: List[str]
+
+
 class KnowledgeRegistry:
     """Loads YAML rule files and performs basic matching."""
 
@@ -52,10 +61,28 @@ class KnowledgeRegistry:
         self.nodes: List[KnowledgeNode] = self._load_all(base_path)
         # Sort by priority descending
         self.nodes.sort(key=lambda n: n.priority, reverse=True)
+        
+        # Index rules by ID
+        self.rules_by_id: Dict[str, KnowledgeNode] = {node.id: node for node in self.nodes}
+        
+        # Load maps
+        self.maps: List[RuleMap] = self._load_maps(base_path / "maps")
+        self.maps.sort(key=lambda m: m.priority, reverse=True)
+        
+        # Sort rules within each map by priority
+        for r_map in self.maps:
+            r_map.rules.sort(
+                key=lambda rid: self.rules_by_id[rid].priority if rid in self.rules_by_id else -1,
+                reverse=True
+            )
 
     def _load_all(self, base_path: Path) -> List[KnowledgeNode]:
         nodes: List[KnowledgeNode] = []
+        # Exclude maps directory from rule loading
         for path in sorted(base_path.rglob("*.yaml")):
+            if "maps" in path.parts:
+                continue
+                
             try:
                 text = path.read_text(encoding="utf-8")
                 if yaml is not None:
@@ -86,6 +113,37 @@ class KnowledgeRegistry:
                 continue
         return nodes
 
+    def _load_maps(self, maps_path: Path) -> List[RuleMap]:
+        maps: List[RuleMap] = []
+        if not maps_path.exists():
+            return maps
+            
+        for path in sorted(maps_path.glob("*.yaml")):
+            try:
+                text = path.read_text(encoding="utf-8")
+                if yaml is not None:
+                    data = yaml.safe_load(text)
+                else:
+                    # Simple parser might fail on lists, but let's try or assume yaml is present
+                    # For now assuming yaml is present as it is a dependency
+                    data = yaml.safe_load(text)
+                
+                if not data:
+                    continue
+                    
+                rule_map = RuleMap(
+                    id=data.get("id", path.stem),
+                    name=data.get("name", ""),
+                    description=data.get("description", ""),
+                    priority=int(data.get("priority", 50)),
+                    rules=data.get("rules", [])
+                )
+                maps.append(rule_map)
+            except Exception as e:
+                print(f"Error loading map {path}: {e}")
+                continue
+        return maps
+
     def _parse_simple_yaml(self, text: str) -> List[dict]:
         """Fallback parser for the limited YAML subset used by rule files."""
         nodes: List[dict] = []
@@ -114,121 +172,101 @@ class KnowledgeRegistry:
     def match(self, before: str, after: str) -> Optional[KnowledgeNode]:
         """
         Identifies the rule that transforms 'before' into 'after'.
-        Uses a 3-phase pipeline:
-        1. Structural Filtering (match_structure)
-        2. Binding Consistency (_is_consistent)
-        3. Equivalence Verification (is_equiv)
+        Uses a RuleMap-based priority search.
         """
-        best_match: KnowledgeNode | None = None
-        best_after_match = False
-        
         # Pre-check: Is the input expression numeric?
         is_before_numeric = self.engine.is_numeric(before)
+        
+        # 1. Search through Maps
+        for rule_map in self.maps:
+            for rule_id in rule_map.rules:
+                node = self.rules_by_id.get(rule_id)
+                if not node:
+                    continue
+                
+                match = self._match_node(node, before, after, is_before_numeric)
+                if match:
+                    return match
 
+        # 2. Fallback: Search remaining rules (if any not in maps)
+        # For now, we can iterate all nodes again, but skip those we already checked?
+        # Or just iterate all nodes as a fallback with lower priority?
+        # To be safe and simple, let's iterate all nodes that were NOT in any map.
+        mapped_ids = set()
+        for m in self.maps:
+            mapped_ids.update(m.rules)
+            
         for node in self.nodes:
-            # Domain Strictness:
-            # Algebraic rules should NOT match pure numeric expressions.
-            if is_before_numeric and node.domain == "algebra":
+            if node.id in mapped_ids:
                 continue
+            match = self._match_node(node, before, after, is_before_numeric)
+            if match:
+                return match
+                
+        return None
 
-            # Fraction-specific patterns should not match when the input has no '/'.
-            if "/" in node.pattern_before and "/" not in before:
-                continue
+    def _match_node(self, node: KnowledgeNode, before: str, after: str, is_before_numeric: bool) -> Optional[KnowledgeNode]:
+        # Domain Strictness:
+        # Algebraic rules should NOT match pure numeric expressions.
+        if is_before_numeric and node.domain == "algebra":
+            return None
 
-            # Strict Rule Matching (AST Node Type Check)
-            # Check if the rule's pattern_before top-level operator matches the input's top-level operator.
-            # This prevents "Sticky Rule ID" (e.g., Pow matches Mul).
-            # We only check if we can reliably determine the operator.
-            expr_op = self.engine.get_top_operator(before)
-            pattern_op = self.engine.get_top_operator(node.pattern_before)
+        # Fraction-specific patterns should not match when the input has no '/'.
+        if "/" in node.pattern_before and "/" not in before:
+            return None
+
+        # Strict Rule Matching (AST Node Type Check)
+        expr_op = self.engine.get_top_operator(before)
+        pattern_op = self.engine.get_top_operator(node.pattern_before)
+        
+        if expr_op and pattern_op:
+            arithmetic_ops = {"Add", "Sub", "Mul", "Mult", "Div", "Pow"}
+            if expr_op in arithmetic_ops and pattern_op in arithmetic_ops:
+                if expr_op != pattern_op:
+                    return None
+
+        expr_for_match = before
+        # Preserve subtraction structure when pattern expects '-'
+        if "-" in node.pattern_before and "+ -" in before:
+            expr_for_match = before.replace("+ -", "- ")
+
+        # Phase 1: Structural Filtering
+        bind_before = self.engine.match_structure(expr_for_match, node.pattern_before)
+        
+        if bind_before is None:
+            return None
+        
+        # Phase 1.5: Condition Check
+        if node.condition:
+            if not self._check_condition(node.condition, bind_before):
+                return None
+
+        # Match 'after' against the rule's output pattern
+        bind_after_raw = self.engine.match_structure(after, node.pattern_after)
+        bind_after = bind_after_raw or {}
             
-            # Allow mismatch if one is "Symbol" or "Number" or "Other" (generic),
-            # but enforce strictness if both are specific operators (Add, Mul, Pow).
-            if expr_op and pattern_op:
-                arithmetic_ops = {"Add", "Sub", "Mul", "Mult", "Div", "Pow"}
-                if expr_op in arithmetic_ops and pattern_op in arithmetic_ops:
-                    if expr_op != pattern_op:
-                        # Special case: a*a (Mul) can match a^2 (Pow) in some contexts, 
-                        # but the spec says "Pow -> Mul ... category: exponents ... prioritize".
-                        # If we are strict, we skip.
-                        # Let's trust the spec: "Pre-check: before and after top-level operators ... compare".
-                        continue
-
-            expr_for_match = before
-            # Preserve subtraction structure when pattern expects '-'
-            if "-" in node.pattern_before and "+ -" in before:
-                expr_for_match = before.replace("+ -", "- ")
-
-            # Phase 1: Structural Filtering
-            # Match 'before' against the rule's input pattern
-            bind_before = self.engine.match_structure(expr_for_match, node.pattern_before)
+        # Phase 2: Binding Consistency
+        if not self._is_consistent(bind_before, bind_after):
+            pass
             
-            # Fallback for Power Definition: (x-y)*(x-y) vs a*a
-            # If strict match fails, try relaxing it if the rule is about exponents/expansion
-            if bind_before is None:
-                # print(f"DEBUG: {node.id} failed match_structure(before)")
-                continue
+        # Phase 3: Equivalence Verification
+        try:
+            # Special handling for calculation rules
+            if node.category == "calculation":
+                if self.engine.is_equiv(before, after):
+                    return node
+                return None
+
+            str_bindings = {k: str(v) for k, v in bind_before.items()}
+            str_bindings.update({k: str(v) for k, v in bind_after.items()})
+            expected_after = self.engine.substitute(node.pattern_after, str_bindings)
             
-            # Phase 1.5: Condition Check
-            if node.condition:
-                if not self._check_condition(node.condition, bind_before):
-                    continue
-
-            # Match 'after' against the rule's output pattern
-            bind_after_raw = self.engine.match_structure(after, node.pattern_after)
-            after_structural_match = bind_after_raw is not None
-            bind_after = bind_after_raw or {}
-                
-            # Phase 2: Binding Consistency
-            # Check if variables bound in both before and after are consistent
-            if not self._is_consistent(bind_before, bind_after):
-                # print(f"DEBUG: {node.id} failed consistency check. Before: {bind_before}, After: {bind_after}")
-                # continue # Strict consistency check disabled due to ambiguity in SymPy matching
-                pass
-                
-            # Phase 3: Equivalence Verification
-            try:
-                # Special handling for calculation rules where output is a new variable (e.g. 'c')
-                if node.category == "calculation":
-                    if self.engine.is_equiv(before, after):
-                        # Apply best match logic
-                        if best_match is None:
-                            best_match = node
-                            best_after_match = after_structural_match
-                        else:
-                            if node.priority > best_match.priority:
-                                best_match = node
-                                best_after_match = after_structural_match
-                            elif node.priority == best_match.priority:
-                                if after_structural_match and not best_after_match:
-                                    best_match = node
-                                    best_after_match = True
-                    continue
-
-                str_bindings = {k: str(v) for k, v in bind_before.items()}
-                str_bindings.update({k: str(v) for k, v in bind_after.items()})
-                expected_after = self.engine.substitute(node.pattern_after, str_bindings)
-                
-                if self.engine.is_equiv(after, expected_after):
-                    # Best match logic
-                    if best_match is None:
-                        best_match = node
-                        best_after_match = after_structural_match
-                    else:
-                        # Prioritize by Priority first
-                        if node.priority > best_match.priority:
-                            best_match = node
-                            best_after_match = after_structural_match
-                        elif node.priority == best_match.priority:
-                            # Tie-break by after_match
-                            if after_structural_match and not best_after_match:
-                                best_match = node
-                                best_after_match = True
-            except Exception as e:
-                # print(f"DEBUG: {node.id} exception: {e}")
-                continue
-                
-        return best_match
+            if self.engine.is_equiv(after, expected_after):
+                return node
+        except Exception:
+            pass
+            
+        return None
 
     def _check_condition(self, condition: str, bindings: Dict[str, Any]) -> bool:
         """Evaluates a condition string against bindings."""

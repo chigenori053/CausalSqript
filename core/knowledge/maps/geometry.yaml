@@ -1,0 +1,5 @@
+id: geometry
+name: "Geometry"
+description: "Geometry and vector operations."
+priority: 70
+rules: []

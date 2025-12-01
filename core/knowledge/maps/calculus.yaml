@@ -1,0 +1,5 @@
+id: calculus
+name: "Calculus"
+description: "Calculus operations (differentiation, integration, limits)."
+priority: 60
+rules: []

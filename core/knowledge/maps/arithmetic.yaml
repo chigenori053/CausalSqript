@@ -1,0 +1,10 @@
+id: arithmetic
+name: "Arithmetic"
+description: "Basic arithmetic operations (elementary to middle school)."
+priority: 100
+rules:
+  - ARITH-CALC-ADD
+  - ARITH-CALC-SUB
+  - ARITH-CALC-MUL
+  - ARITH-CALC-POW
+  - ARITH-CALC-DONE

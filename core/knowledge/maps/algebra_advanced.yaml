@@ -1,0 +1,5 @@
+id: algebra_advanced
+name: "Algebra (Advanced)"
+description: "Advanced algebra operations (high school)."
+priority: 80
+rules: []

@@ -1,0 +1,5 @@
+id: statistics
+name: "Statistics"
+description: "Probability and statistics."
+priority: 50
+rules: []
