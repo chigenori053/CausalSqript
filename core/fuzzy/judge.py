@@ -17,12 +17,15 @@ def _clamp(value: float) -> float:
     return max(0.0, min(1.0, value))
 
 
+from ..symbolic_engine import SymbolicEngine
+
 @dataclass
 class FuzzyJudge:
     encoder: ExpressionEncoder
     metric: SimilarityMetric
     thresholds: FuzzyThresholdConfig | None = None
     decision_config: DecisionConfig | None = None
+    symbolic_engine: SymbolicEngine | None = None
 
     def __post_init__(self) -> None:
         if self.thresholds is None:
@@ -63,6 +66,16 @@ class FuzzyJudge:
             0.2 * rule_sim +
             0.2 * text_sim
         )
+
+        # --- Calculus Check (Antiderivative) ---
+        calculus_bonus = 0.0
+        calculus_reason = ""
+        if combined < 0.8 and self.symbolic_engine:
+            is_antiderivative = self._check_antiderivative(problem_expr["raw"], candidate_expr["raw"])
+            if is_antiderivative:
+                calculus_bonus = 0.3  # Boost score to likely acceptance
+                combined = min(1.0, combined + calculus_bonus)
+                calculus_reason = "Correct antiderivative (missing bounds?)"
 
         # --- Decision Theory Layer ---
         # We treat 'combined' as P(Match)
@@ -118,6 +131,8 @@ class FuzzyJudge:
         full_reason = main_msg
         if reason_msg:
             full_reason += f" | {reason_msg}"
+        if calculus_reason:
+            full_reason += f" | {calculus_reason}"
         full_reason += f" | {detail_msg}"
         
         # Add decision debug info
@@ -138,6 +153,99 @@ class FuzzyJudge:
                 "candidate_raw": candidate_expr["raw"],
                 "decision_action": action.value,
                 "decision_utility": utility,
-                "decision_utils": debug_utils
+                "decision_utils": debug_utils,
+                "calculus_bonus": calculus_bonus
             },
         )
+
+    def _check_antiderivative(self, problem_raw: str, candidate_raw: str) -> bool:
+        """
+        Check if candidate is the antiderivative of the problem's integrand.
+        """
+        if not self.symbolic_engine:
+            return False
+        
+        try:
+            # 1. Parse problem to find Integral
+            # We need to handle "integrate(...)" or "Integral(...)"
+            # Use symbolic_engine to parse
+            problem_sym = self.symbolic_engine.to_internal(problem_raw)
+            
+            # Check if it's an Integral (or Mul with Integral)
+            # We might need to traverse the expression tree
+            import sympy
+            
+            integrals = problem_sym.atoms(sympy.Integral)
+            if not integrals:
+                return False
+            
+            # Assume the main integral is the one we care about (simplification)
+            # Or check if the whole expression is equivalent to an Integral
+            # For "3 * integrate(...)", it's a Mul.
+            
+            # Let's try to differentiate the candidate and see if it matches the integrand * constant
+            # But we need to know the variable of integration.
+            
+            target_integral = list(integrals)[0]
+            integrand = target_integral.function
+            limits = target_integral.limits # ((x, 0, 2),)
+            variable = limits[0][0]
+            
+            # Differentiate candidate
+            candidate_sym = self.symbolic_engine.to_internal(candidate_raw)
+            derivative = sympy.diff(candidate_sym, variable)
+            
+            # Now we need to check if derivative is equivalent to the integrand * (problem / integral)
+            # This is tricky for "3 * integrate(...)".
+            # Easier: Differentiate candidate and see if it equals the derivative of the problem *with respect to the upper bound*?
+            # No, that's for FTC.
+            
+            # If user wrote "x^3" for "integrate(3*x^2, ...)", then diff(x^3) = 3*x^2.
+            # And "3 * integrate(x^2)" -> integrand is 3*x^2 (effectively).
+            
+            # Let's try: diff(candidate) == integrand of (problem expressed as single integral)?
+            # Or: diff(candidate) == problem_without_integral_sign?
+            
+            # If problem is "3 * Integral(x^2)", effectively "Integral(3*x^2)".
+            # If we differentiate candidate "x^3", we get "3*x^2".
+            
+            # So, we want to check if "Integral(diff(candidate))" is equivalent to "problem_sym" (ignoring bounds)?
+            # Or "diff(candidate)" equivalent to "integrand of problem"?
+            
+            # Let's try to convert problem to indefinite integral and compare with candidate?
+            # No, candidate is "x^3", indefinite integral of "3*x^2".
+            
+            # Approach:
+            # 1. Differentiate candidate: D
+            # 2. Integrate D (indefinite): I_D
+            # 3. Compare I_D with problem's indefinite version?
+            
+            # Better:
+            # 1. Differentiate candidate: D
+            # 2. Compare D with the integrand of the problem.
+            # How to get "integrand of the problem" if it's "3 * Integral(x^2)"?
+            # We can try to put everything inside the integral?
+            
+            # Alternative:
+            # Check if diff(candidate, variable) == problem_sym.replace(Integral, lambda f, *args: f) ?
+            # No, "3 * Integral(x^2)" -> "3 * x^2".
+            # diff("x^3") -> "3 * x^2". Match!
+            
+            # So:
+            # 1. Identify integration variable from the Integral atom.
+            # 2. Differentiate candidate w.r.t that variable.
+            # 3. Strip the Integral wrapper from problem_sym (replace Integral(f, ...) with f).
+            # 4. Compare derivative with stripped problem.
+            
+            # Handle multiple integrals? Just take the first one found.
+            
+            # Replace all Integrals in problem_sym with their integrands
+            problem_stripped = problem_sym.replace(
+                sympy.Integral,
+                lambda f, *args: f
+            )
+            
+            return self.symbolic_engine.is_equiv(derivative, problem_stripped)
+            
+        except Exception:
+            return False

@@ -179,7 +179,7 @@ class SymbolicEngine:
             # If it's a string, convert to internal first
             if isinstance(expr, str):
                 # Avoid eager simplification which may remove symbols (e.g., -x*y + x*y -> 0).
-                local_dict = {"e": _sympy.E, "pi": _sympy.pi}
+                local_dict = {"e": _sympy.E, "pi": _sympy.pi, "integrate": _sympy.Integral}
                 internal = _sympy.sympify(expr, locals=local_dict, evaluate=False)
             else:
                 internal = expr
@@ -196,7 +196,8 @@ class SymbolicEngine:
             return self._fallback.parse(expr)
         try:
             # Ensure 'e' is treated as Euler's number and 'pi' as pi
-            local_dict = {"e": _sympy.E, "pi": _sympy.pi}
+            # Map 'integrate' to 'Integral' to prevent eager evaluation (Late Evaluation Mode)
+            local_dict = {"e": _sympy.E, "pi": _sympy.pi, "integrate": _sympy.Integral}
             return _sympy.sympify(expr, locals=local_dict)
         except Exception as exc:  # pragma: no cover - SymPy provides details.
             raise InvalidExprError(str(exc)) from exc
@@ -367,7 +368,7 @@ class SymbolicEngine:
         
         try:
             from sympy.parsing.sympy_parser import parse_expr
-            local_dict = {"e": _sympy.E, "pi": _sympy.pi}
+            local_dict = {"e": _sympy.E, "pi": _sympy.pi, "integrate": _sympy.Integral}
             # Normalize power symbol
             expr_norm = expr.replace("^", "**")
             internal = parse_expr(expr_norm, evaluate=False, local_dict=local_dict)
@@ -435,7 +436,7 @@ class SymbolicEngine:
         try:
             # Use parse_expr with evaluate=False to prevent auto-simplification
             from sympy.parsing.sympy_parser import parse_expr # type: ignore
-            local_dict = {"e": _sympy.E, "pi": _sympy.pi}
+            local_dict = {"e": _sympy.E, "pi": _sympy.pi, "integrate": _sympy.Integral}
             
             # Parse expr
             internal = parse_expr(expr, evaluate=False, local_dict=local_dict)
@@ -536,7 +537,7 @@ class SymbolicEngine:
             from sympy import Wild
             from sympy.parsing.sympy_parser import parse_expr
             
-            local_dict = {"e": _sympy.E, "pi": _sympy.pi}
+            local_dict = {"e": _sympy.E, "pi": _sympy.pi, "integrate": _sympy.Integral}
             
             # 1. Parse the concrete expression
             # Use evaluate=True to allow basic simplification like (x-y)*(x-y) -> (x-y)**2

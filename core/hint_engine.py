@@ -132,6 +132,18 @@ class HintEngine:
         except (InvalidExprError, EvaluationError):
             pass
 
+        # 3c. Missing Bounds (Definite Integral)
+        try:
+            if self.symbolic_engine.is_numeric(target_expr) and not self.symbolic_engine.is_numeric(user_expr):
+                candidates.append(HintCandidate(
+                    content="It looks like you have a variable in your answer, but the result should be a number. Did you forget to apply the bounds?",
+                    type="heuristic_missing_bounds",
+                    probability=0.85,
+                    source="heuristic"
+                ))
+        except (InvalidExprError, EvaluationError):
+            pass
+
         # 4. Fallback / Generic Hints
         candidates.append(HintCandidate(
             content="Try checking your steps carefully.",

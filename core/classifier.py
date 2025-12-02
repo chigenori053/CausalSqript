@@ -54,7 +54,7 @@ class ExpressionClassifier:
         # "Integral", "Derivative", "Diff", "int", "d/dx"
         # Also the bracket notation [expr]_a^b which becomes Subs
         
-        keywords = {"Integral", "Derivative", "Diff", "Subs", "Limit"}
+        keywords = {"Integral", "Derivative", "Diff", "Subs", "Limit", "integrate", "diff"}
         # Simple string check might be enough for now, or check AST/SymPy structure
         # But expr is a string here.
         
@@ -62,8 +62,9 @@ class ExpressionClassifier:
         # Also check for normalized forms.
         
         # Heuristic:
-        if "Integral" in expr or "Derivative" in expr or "Subs" in expr:
-            return True
+        for kw in keywords:
+            if kw in expr:
+                return True
             
         # Check for "int" or "diff" tokens if not fully normalized to SymPy class names
         # But usually we classify *before* or *during* evaluation.

@@ -64,6 +64,8 @@ class CoreRuntime(Engine):
         """
         self.computation_engine = computation_engine
         self.validation_engine = validation_engine
+        if hasattr(self.validation_engine, 'fuzzy_judge') and self.validation_engine.fuzzy_judge:
+            self.validation_engine.fuzzy_judge.symbolic_engine = computation_engine.symbolic_engine
         self.hint_engine = hint_engine
         self.exercise_spec = exercise_spec
         self.learning_logger = learning_logger or LearningLogger()

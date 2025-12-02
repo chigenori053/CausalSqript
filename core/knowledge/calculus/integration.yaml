@@ -60,6 +60,15 @@
   description: "Evaluate Definite Integral"
   priority: 150
 
+- id: CALC-INT-EVAL-CONST
+  domain: calculus
+  category: calculation
+  pattern_before: "c * Integral(f, (x, a, b))"
+  pattern_after: "Subs(c * Integral(f, x), x, b) - Subs(c * Integral(f, x), x, a)"
+  description: "Evaluate Definite Integral with Constant"
+  priority: 150
+  condition: "is_numeric(c) or (c.is_Symbol and c != x)"
+
 - id: CALC-INT-POLY
   domain: calculus
   category: calculation
