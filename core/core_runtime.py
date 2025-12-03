@@ -17,7 +17,9 @@ from .stats_engine import StatsEngine
 from .trig_engine import TrigHelper
 from .calculus_engine import CalculusEngine
 from .linear_algebra_engine import LinearAlgebraEngine
-from core.errors import CausalScriptError, InvalidStepError, MissingProblemError
+from .classifier import ExpressionClassifier
+from .category_identifier import CategoryIdentifier
+from core.errors import CausalScriptError, InvalidExprError, MissingProblemError
 
 _EQUATION_SAMPLE_ASSIGNMENTS = [
     {"x": -2, "y": 1, "z": 3, "a": 1},
@@ -84,8 +86,11 @@ class CoreRuntime(Engine):
         self.trig_helper = TrigHelper()
         self.calculus_engine = CalculusEngine(computation_engine)
         self.linear_algebra = LinearAlgebraEngine()
+        self.classifier = ExpressionClassifier(computation_engine.symbolic_engine)
+        self.category_identifier = CategoryIdentifier(computation_engine.symbolic_engine)
         
         self._current_expr: str | None = None
+        self._current_domains: list[str] = []
         self._context: Dict[str, Any] = {}
         self._scenarios: Dict[str, Dict[str, Any]] = {}
         self._equation_mode: bool = False
@@ -198,6 +203,16 @@ class CoreRuntime(Engine):
         """
         self._equation_mode = "=" in expr
         self._current_expr = self._normalize_expression(expr)
+        
+        # Use CategoryIdentifier
+        cat_result = self.category_identifier.identify(self._current_expr)
+        self._current_domains = cat_result.details.get("raw_domains", [])
+        
+        # Propagate context to SymbolicEngine
+        categories = [cat_result.primary_category] + cat_result.related_categories
+        self.computation_engine.symbolic_engine.set_context(categories)
+        
+        print(f"DEBUG: Classified '{self._current_expr}' as {self._current_domains} (Primary: {cat_result.primary_category})")
         
     def set_variable(self, name: str, value: Any) -> None:
         """
@@ -387,7 +402,7 @@ class CoreRuntime(Engine):
             result["details"]["evaluated"] = after
 
         if is_valid and self.knowledge_registry:
-            rule_node = self.knowledge_registry.match(before, after)
+            rule_node = self.knowledge_registry.match(before, after, context_domains=self._current_domains)
             if rule_node:
                 result["rule_id"] = rule_node.id
                 result["details"]["rule"] = rule_node.to_metadata()
@@ -432,6 +447,19 @@ class CoreRuntime(Engine):
             
         print(f"DEBUG: Step '{expr}' -> Valid: {is_valid}, Partial: {is_partial}, Before: '{before}', After: '{after}'")
         return result
+
+    def generate_optimization_report(self) -> Dict[str, Any]:
+        """
+        Generates a report on the optimization strategy and classification results.
+        """
+        # Re-identify to get the structured result if needed, or rely on stored state
+        # For now, we use the stored domains but we could expose the full CategoryResult
+        return {
+            "classification": self._current_domains,
+            "symbolic_engine_mode": "optimized" if "calculus" in self._current_domains else "standard",
+            "rule_matching_scope": self._current_domains,
+            "report_rendering_strategy": "latex_enhanced" if "calculus" in self._current_domains or "linear_algebra" in self._current_domains else "standard"
+        }
 
     def analyze_function(self, expr: str, variable: str = "x") -> Dict[str, Any]:
         """

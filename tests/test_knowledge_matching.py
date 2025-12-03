@@ -1,6 +1,7 @@
-
 import sys
 import os
+import pytest
+sympy = pytest.importorskip("sympy")
 from pathlib import Path
 
 # Add project root to path

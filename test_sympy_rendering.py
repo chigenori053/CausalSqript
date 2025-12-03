@@ -1,3 +1,5 @@
+import pytest
+sympy = pytest.importorskip("sympy")
 from sympy import symbols, latex
 from sympy.parsing.sympy_parser import parse_expr
 

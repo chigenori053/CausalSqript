@@ -1,4 +1,5 @@
 import pytest
+sympy = pytest.importorskip("sympy")
 from core.input_parser import CausalScriptInputParser
 from core.symbolic_engine import SymbolicEngine
 

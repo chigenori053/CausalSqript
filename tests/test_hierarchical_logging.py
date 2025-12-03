@@ -1,5 +1,8 @@
 import unittest
 import os
+import pytest
+sympy = pytest.importorskip("sympy")
+import logging
 from pathlib import Path
 from core.symbolic_engine import SymbolicEngine
 from core.computation_engine import ComputationEngine

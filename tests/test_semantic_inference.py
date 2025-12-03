@@ -24,7 +24,7 @@ class StubKnowledgeRegistry(KnowledgeRegistry):
             description="Combine like terms"
         )
 
-    def match(self, before: str, after: str) -> Optional[KnowledgeNode]:
+    def match(self, before: str, after: str, **kwargs) -> Optional[KnowledgeNode]:
         # Simple stub matching
         if "x + x" in before and "2*x" in after:
             return self.node

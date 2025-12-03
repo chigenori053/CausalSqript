@@ -1,4 +1,6 @@
 import unittest
+import pytest
+sympy = pytest.importorskip("sympy")
 from core.symbolic_engine import SymbolicEngine
 from core.computation_engine import ComputationEngine
 from core.validation_engine import ValidationEngine

@@ -138,12 +138,34 @@ class _FallbackEvaluator:
         return False
 
 
+from .math_category import MathCategory
+from .symbolic_strategies import (
+    SymbolicStrategy,
+    ArithmeticStrategy,
+    AlgebraStrategy,
+    CalculusStrategy,
+    LinearAlgebraStrategy,
+    StatisticsStrategy,
+    GeometryStrategy
+)
+
 @dataclass
 class SymbolicEngine:
     """Thin wrapper providing equivalence and simplification utilities."""
 
     def __post_init__(self) -> None:
         self._fallback = _FallbackEvaluator() if _sympy is None else None
+        
+        # Initialize strategies
+        self.strategies: Dict[MathCategory, SymbolicStrategy] = {
+            MathCategory.ARITHMETIC: ArithmeticStrategy(self._fallback),
+            MathCategory.ALGEBRA: AlgebraStrategy(self._fallback),
+            MathCategory.CALCULUS: CalculusStrategy(self._fallback),
+            MathCategory.LINEAR_ALGEBRA: LinearAlgebraStrategy(self._fallback),
+            MathCategory.STATISTICS: StatisticsStrategy(self._fallback),
+            MathCategory.GEOMETRY: GeometryStrategy(self._fallback),
+        }
+        self.active_categories: List[MathCategory] = []
 
     def has_sympy(self) -> bool:
         return self._fallback is None
@@ -202,7 +224,20 @@ class SymbolicEngine:
         except Exception as exc:  # pragma: no cover - SymPy provides details.
             raise InvalidExprError(str(exc)) from exc
 
+    def set_context(self, categories: List[MathCategory]) -> None:
+        """Set the active mathematical context to prioritize strategies."""
+        self.active_categories = categories
+
     def is_equiv(self, expr1: str, expr2: str) -> bool:
+        # 1. Try active strategies first
+        for category in self.active_categories:
+            strategy = self.strategies.get(category)
+            if strategy:
+                result = strategy.is_equiv(expr1, expr2, self)
+                if result is not None:
+                    return result
+                    
+        # 2. Fallback to default logic (existing implementation)
         if self._fallback is not None:
             return self._fallback_is_equiv(expr1, expr2)
         internal1 = self.to_internal(expr1)
@@ -299,7 +334,8 @@ class SymbolicEngine:
             # Or maybe we just need more robust sampling.
             # For the user's case (sin(pi/3)), there are no variables, so it should run once and succeed.
             pass
-        return True
+            
+        return success
 
     def _numeric_sampling_equiv(self, expr1: str, expr2: str) -> bool:
         try:
@@ -324,6 +360,15 @@ class SymbolicEngine:
         return success
 
     def simplify(self, expr: str) -> str:
+        # 1. Try active strategies
+        for category in self.active_categories:
+            strategy = self.strategies.get(category)
+            if strategy:
+                result = strategy.simplify(expr, self)
+                if result is not None:
+                    return result
+
+        # 2. Fallback
         if self._fallback is not None:
             try:
                 return SimpleAlgebra.simplify(expr)
@@ -352,6 +397,20 @@ class SymbolicEngine:
         Returns:
             LaTeX string representation.
         """
+        # 1. Try active strategies (or context_domains if provided)
+        # We prioritize active_categories if context_domains is not passed, 
+        # or we can merge them. For now, let's use active_categories if context_domains is None.
+        
+        # Note: context_domains is legacy string list, active_categories is Enum list.
+        # We might want to align them.
+        
+        for category in self.active_categories:
+            strategy = self.strategies.get(category)
+            if strategy:
+                result = strategy.to_latex(expr, self)
+                if result is not None:
+                    return result
+
         # Determine multiplication symbol based on context
         mul_symbol = r" \cdot " # Default for arithmetic or unknown
         if context_domains and "algebra" in context_domains:

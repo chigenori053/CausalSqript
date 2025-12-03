@@ -1,4 +1,5 @@
-import sympy
+import pytest
+sympy = pytest.importorskip("sympy")
 from sympy.parsing.sympy_parser import parse_expr
 
 def test():

@@ -1,4 +1,5 @@
 import pytest
+sympy = pytest.importorskip("sympy")
 from core.core_runtime import CoreRuntime
 from core.computation_engine import ComputationEngine
 from core.validation_engine import ValidationEngine

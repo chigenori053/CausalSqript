@@ -1,4 +1,5 @@
 import pytest
+sympy = pytest.importorskip("sympy")
 from core.symbolic_engine import SymbolicEngine
 from core.latex_formatter import LaTeXFormatter
 from core.proof_engine import Fact, Step

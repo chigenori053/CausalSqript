@@ -1,4 +1,5 @@
 import pytest
+sympy = pytest.importorskip("sympy")
 from core.hint_engine import HintEngine, HintResult
 from core.computation_engine import ComputationEngine
 from core.symbolic_engine import SymbolicEngine

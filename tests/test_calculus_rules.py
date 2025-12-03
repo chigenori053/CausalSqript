@@ -1,4 +1,5 @@
 import pytest
+sympy = pytest.importorskip("sympy")
 from core.symbolic_engine import SymbolicEngine
 from core.knowledge_registry import KnowledgeRegistry
 from pathlib import Path

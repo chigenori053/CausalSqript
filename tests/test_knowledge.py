@@ -1,3 +1,5 @@
+import pytest
+sympy = pytest.importorskip("sympy")
 from pathlib import Path
 
 from core.knowledge_registry import KnowledgeRegistry

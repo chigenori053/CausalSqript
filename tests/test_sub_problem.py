@@ -1,10 +1,12 @@
 import unittest
+import pytest
 from core.symbolic_engine import SymbolicEngine
 from core.computation_engine import ComputationEngine
 from core.validation_engine import ValidationEngine
 from core.hint_engine import HintEngine
 from core.core_runtime import CoreRuntime
 from core.parser import Parser
+sympy = pytest.importorskip("sympy")
 from core.evaluator import Evaluator
 from core.learning_logger import LearningLogger
 

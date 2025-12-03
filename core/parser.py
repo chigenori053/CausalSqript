@@ -1,4 +1,4 @@
-                                                                                                                                                                                                                                                                                                                                                                                                                                                            """Line-oriented parser for the MathLang Core DSL."""
+"""Line-oriented parser for the MathLang Core DSL."""
 
 from __future__ import annotations
 
