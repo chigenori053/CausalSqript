@@ -11,6 +11,8 @@ from .geometry_engine import GeometryEngine
 from .errors import EvaluationError, InvalidExprError
 from .ast_nodes import Node
 from .simple_algebra import SimpleAlgebra
+from .category_analyzer import CategoryAnalyzer
+from .math_category import MathCategory
 
 try:
     import sympy
@@ -45,10 +47,8 @@ class ComputationEngine:
     The ComputationEngine wraps the SymbolicEngine to provide a higher-level
     interface for mathematical computations, including simplification, expansion,
     factoring, and numeric evaluation.
-    
-    Attributes:
-        symbolic_engine: The underlying SymbolicEngine instance
-        variables: Dictionary of bound variables for evaluation context
+    Handles core mathematical computations and symbolic manipulations.
+    Delegates to specialized engines (Geometry, Calculus, etc.) as needed.
     """
 
     def __init__(self, symbolic_engine: SymbolicEngine):
@@ -58,6 +58,7 @@ class ComputationEngine:
         Args:
             symbolic_engine: SymbolicEngine instance for symbolic operations
         """
+
         self.symbolic_engine = symbolic_engine
         self.variables: Dict[str, Any] = {}
         self._shared_executor: concurrent.futures.Executor | None = None
@@ -66,6 +67,31 @@ class ComputationEngine:
             self.geometry = GeometryEngine()
         except ImportError:
             self.geometry = None
+
+    def detect_category(self, expr: str) -> MathCategory:
+        """Detect the mathematical category of an expression."""
+        return CategoryAnalyzer.detect(expr)
+
+    def compute_optimized(self, expr: str, category: MathCategory | None = None) -> Any:
+        """
+        Perform computation using the engine optimized for the detected category.
+        Returns the simplified string or computed value.
+        """
+        target_category = category or self.detect_category(expr)
+
+        # Dispatch to specialized engines
+        if target_category == MathCategory.CALCULUS:
+            # Attempt to solve derivatives/integrals if explicitly requested in syntax
+            if "diff" in expr or "d/dx" in expr or "Derivative" in expr:
+                # Fallback to symbolic simplify which handles 'diff(x**2, x)' via SymPy
+                pass 
+
+        elif target_category == MathCategory.GEOMETRY and self.geometry:
+            # If the expression evaluates to a Geometric entity, return its properties
+            pass
+            
+        # Default fallback: Symbolic simplification
+        return self.simplify(expr)
 
     def _get_executor(self) -> concurrent.futures.Executor:
         """

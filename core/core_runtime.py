@@ -19,6 +19,7 @@ from .calculus_engine import CalculusEngine
 from .linear_algebra_engine import LinearAlgebraEngine
 from .classifier import ExpressionClassifier
 from .category_identifier import CategoryIdentifier
+from .math_category import MathCategory
 from core.errors import CausalScriptError, InvalidExprError, MissingProblemError
 
 _EQUATION_SAMPLE_ASSIGNMENTS = [
@@ -91,6 +92,7 @@ class CoreRuntime(Engine):
         
         self._current_expr: str | None = None
         self._current_domains: list[str] = []
+        self._current_category: MathCategory = MathCategory.ALGEBRA
         self._context: Dict[str, Any] = {}
         self._scenarios: Dict[str, Dict[str, Any]] = {}
         self._equation_mode: bool = False
@@ -204,15 +206,14 @@ class CoreRuntime(Engine):
         self._equation_mode = "=" in expr
         self._current_expr = self._normalize_expression(expr)
         
-        # Use CategoryIdentifier
-        cat_result = self.category_identifier.identify(self._current_expr)
-        self._current_domains = cat_result.details.get("raw_domains", [])
+        # Auto-detect and store category
+        self._current_category = self.computation_engine.detect_category(self._current_expr)
+        self._current_domains = [self._current_category.value]
         
         # Propagate context to SymbolicEngine
-        categories = [cat_result.primary_category] + cat_result.related_categories
-        self.computation_engine.symbolic_engine.set_context(categories)
+        self.computation_engine.symbolic_engine.set_context([self._current_category])
         
-        print(f"DEBUG: Classified '{self._current_expr}' as {self._current_domains} (Primary: {cat_result.primary_category})")
+        print(f"DEBUG: Detected Category: {self._current_category.value}")
         
     def set_variable(self, name: str, value: Any) -> None:
         """
