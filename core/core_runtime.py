@@ -426,7 +426,7 @@ class CoreRuntime(Engine):
                 )
                 
                 from core.fuzzy.types import FuzzyLabel
-                if fuzzy_result.label in [FuzzyLabel.EXACT, FuzzyLabel.EQUIVALENT, FuzzyLabel.APPROX_EQ, FuzzyLabel.ANALOGOUS]:
+                if fuzzy_result['label'] in [FuzzyLabel.EXACT, FuzzyLabel.EQUIVALENT, FuzzyLabel.APPROX_EQ, FuzzyLabel.ANALOGOUS]:
                     is_valid = True
             except Exception:
                 pass
@@ -438,6 +438,43 @@ class CoreRuntime(Engine):
             "rule_id": None,
             "details": {},
         }
+
+        # === Improved Precision Logic ===
+        
+        # 1. Calculate expected formula for logging
+        expected_expr = None
+        try:
+            # Simplify 'before' to get the mathematically "correct" next state or value
+            expected_expr = self.computation_engine.simplify(before)
+            result["details"]["expected_formula"] = expected_expr
+        except Exception:
+            pass
+
+        # 2. Check for mathematical errors regardless of final "valid" status (which might be fuzzy-ok)
+        if not is_valid_symbolic and not is_partial:
+            # If not symbolically valid (and not a valid partial step), mark as math error
+            # This applies even if fuzzy logic saved it (is_valid=True)
+            result["details"]["mathematical_error"] = True
+            
+            # Generate hint targeting the correction
+            # target=before is used so the hint mechanism sees the transition from Before -> After
+            hint = self.hint_engine.generate_hint(after, before, persona=self.hint_persona)
+            
+            feedback_info = {
+                "message": hint.message,
+                "type": hint.hint_type,
+                "correction": f"Should be close to: {expected_expr}" if expected_expr else None
+            }
+
+            if is_valid:
+                # Case A: Accepted by Fuzzy Judge (or Scenarios), but has symbolic error
+                # We add a correction notice so the user/LLM knows it wasn't perfect
+                result["details"]["correction_notice"] = feedback_info
+                result["details"]["evaluation_note"] = "Accepted by fuzzy match, but contains symbolic error."
+            else:
+                # Case B: Not valid at all
+                # Provide the feedback as the main hint
+                result["details"]["hint"] = feedback_info
 
         # Calculate evaluated form for UI display
         try:
@@ -466,15 +503,15 @@ class CoreRuntime(Engine):
             result["details"]["scenarios"] = scenario_results
             
         if fuzzy_result:
-            result["details"]["fuzzy_label"] = fuzzy_result.label.value
-            result["details"]["fuzzy_score"] = fuzzy_result.score.combined_score
+            result["details"]["fuzzy_label"] = fuzzy_result['label'].value
+            result["details"]["fuzzy_score"] = fuzzy_result['score']['combined_score']
 
-            if "decision_action" in fuzzy_result.debug:
-                result["details"]["decision_action"] = fuzzy_result.debug["decision_action"]
-            if "decision_utility" in fuzzy_result.debug:
-                result["details"]["decision_utility"] = fuzzy_result.debug["decision_utility"]
-            if "decision_utils" in fuzzy_result.debug:
-                result["details"]["decision_utils"] = fuzzy_result.debug["decision_utils"]
+            if "decision_action" in fuzzy_result['debug']:
+                result["details"]["decision_action"] = fuzzy_result['debug']["decision_action"]
+            if "decision_utility" in fuzzy_result['debug']:
+                result["details"]["decision_utility"] = fuzzy_result['debug']["decision_utility"]
+            if "decision_utils" in fuzzy_result['debug']:
+                result["details"]["decision_utils"] = fuzzy_result['debug']["decision_utils"]
 
             if is_valid and not is_valid_symbolic and not is_partial:
                 # If valid via fuzzy but not symbolic, suggest the 'before' state as the corrected form
@@ -493,12 +530,14 @@ class CoreRuntime(Engine):
                 result["details"]["critical"] = True
             # Generate hint if invalid
             # Use the previous expression as the target for the hint
-            hint = self.hint_engine.generate_hint(after, before, persona=self.hint_persona)
-            result["details"]["hint"] = {
-                "message": hint.message,
-                "type": hint.hint_type,
-                "details": hint.details
-            }
+            # This hint generation is now handled by the improved precision logic if it's a mathematical error
+            if "hint" not in result["details"]:
+                hint = self.hint_engine.generate_hint(after, before, persona=self.hint_persona)
+                result["details"]["hint"] = {
+                    "message": hint.message,
+                    "type": hint.hint_type,
+                    "details": hint.details
+                }
             
         # Render the result for display
         self.rendering_engine.render_result(result)
