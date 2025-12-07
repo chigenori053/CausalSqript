@@ -7,7 +7,7 @@ import json
 from pathlib import Path
 from typing import Dict, List, Any
 
-from edu.cli import main as edu_cli_main
+from causalscript.edu.cli import main as edu_cli_main
 
 SCENARIO_PATH = Path(__file__).resolve().parent / "scenarios" / "config.json"
 

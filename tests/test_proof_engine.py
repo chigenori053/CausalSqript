@@ -1,5 +1,5 @@
 import pytest
-from core.proof_engine import ProofEngine, Fact, TransitiveRule, SymmetricRule, SSSRule
+from causalscript.core.proof_engine import ProofEngine, Fact, TransitiveRule, SymmetricRule, SSSRule
 
 def test_transitivity():
     engine = ProofEngine()

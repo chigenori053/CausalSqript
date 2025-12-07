@@ -1,6 +1,6 @@
 from fractions import Fraction
 
-from core.symbolic_engine import SymbolicEngine
+from causalscript.core.symbolic_engine import SymbolicEngine
 
 
 def test_fraction_to_string_plain():

@@ -1,8 +1,8 @@
 import pytest
-from core.category_analyzer import CategoryAnalyzer
-from core.math_category import MathCategory
-from core.computation_engine import ComputationEngine
-from core.symbolic_engine import SymbolicEngine
+from causalscript.core.category_analyzer import CategoryAnalyzer
+from causalscript.core.math_category import MathCategory
+from causalscript.core.computation_engine import ComputationEngine
+from causalscript.core.symbolic_engine import SymbolicEngine
 
 try:
     import sympy

@@ -1,12 +1,12 @@
 from __future__ import annotations
 
-from core.causal import CausalEngine
-from core.evaluator import Evaluator, SymbolicEvaluationEngine
-from core.fuzzy.types import FuzzyLabel, FuzzyResult, FuzzyScore
-from core.knowledge_registry import KnowledgeNode
-from core.learning_logger import LearningLogger
-from core.parser import Parser
-from core.symbolic_engine import SymbolicEngine
+from causalscript.core.causal import CausalEngine
+from causalscript.core.evaluator import Evaluator, SymbolicEvaluationEngine
+from causalscript.core.fuzzy.types import FuzzyLabel, FuzzyResult, FuzzyScore
+from causalscript.core.knowledge_registry import KnowledgeNode
+from causalscript.core.learning_logger import LearningLogger
+from causalscript.core.parser import Parser
+from causalscript.core.symbolic_engine import SymbolicEngine
 
 
 class StubKnowledgeRegistry:

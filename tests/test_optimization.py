@@ -1,11 +1,11 @@
 
 import unittest
-from core.core_runtime import CoreRuntime
-from core.computation_engine import ComputationEngine
-from core.validation_engine import ValidationEngine
-from core.hint_engine import HintEngine
-from core.symbolic_engine import SymbolicEngine
-from core.knowledge_registry import KnowledgeRegistry
+from causalscript.core.core_runtime import CoreRuntime
+from causalscript.core.computation_engine import ComputationEngine
+from causalscript.core.validation_engine import ValidationEngine
+from causalscript.core.hint_engine import HintEngine
+from causalscript.core.symbolic_engine import SymbolicEngine
+from causalscript.core.knowledge_registry import KnowledgeRegistry
 from pathlib import Path
 
 class TestOptimization(unittest.TestCase):

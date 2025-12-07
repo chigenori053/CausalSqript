@@ -6,8 +6,8 @@ try:
 except ImportError:
     sympy = None
 
-from core.symbolic_engine import SymbolicEngine
-from core.input_parser import CausalScriptInputParser
+from causalscript.core.symbolic_engine import SymbolicEngine
+from causalscript.core.input_parser import CausalScriptInputParser
 
 @pytest.fixture
 def engine():

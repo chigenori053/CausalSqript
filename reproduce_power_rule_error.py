@@ -1,9 +1,9 @@
-from core.symbolic_engine import SymbolicEngine
-from core.fuzzy.judge import FuzzyJudge
-from core.fuzzy.encoder import ExpressionEncoder
-from core.fuzzy.metric import SimilarityMetric
-from core.fuzzy.config import FuzzyThresholdConfig
-from core.decision_theory import DecisionConfig
+from causalscript.core.symbolic_engine import SymbolicEngine
+from causalscript.core.fuzzy.judge import FuzzyJudge
+from causalscript.core.fuzzy.encoder import ExpressionEncoder
+from causalscript.core.fuzzy.metric import SimilarityMetric
+from causalscript.core.fuzzy.config import FuzzyThresholdConfig
+from causalscript.core.decision_theory import DecisionConfig
 
 def test_power_rule_error():
     engine = SymbolicEngine()

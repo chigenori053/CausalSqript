@@ -1,8 +1,8 @@
 """Tests for Parallel Computation in Scenarios."""
 
 import pytest
-from core.computation_engine import ComputationEngine
-from core.symbolic_engine import SymbolicEngine
+from causalscript.core.computation_engine import ComputationEngine
+from causalscript.core.symbolic_engine import SymbolicEngine
 
 @pytest.fixture
 def engine():

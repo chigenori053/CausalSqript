@@ -2,13 +2,13 @@ import pytest
 
 from pathlib import Path
 
-from core.evaluator import Evaluator, SymbolicEvaluationEngine, Engine
-from core.errors import MissingProblemError, SyntaxError as DslSyntaxError
-from core.fuzzy.types import FuzzyLabel, FuzzyResult, FuzzyScore
-from core.knowledge_registry import KnowledgeRegistry
-from core.learning_logger import LearningLogger
-from core.parser import Parser
-from core.symbolic_engine import SymbolicEngine
+from causalscript.core.evaluator import Evaluator, SymbolicEvaluationEngine, Engine
+from causalscript.core.errors import MissingProblemError, SyntaxError as DslSyntaxError
+from causalscript.core.fuzzy.types import FuzzyLabel, FuzzyResult, FuzzyScore
+from causalscript.core.knowledge_registry import KnowledgeRegistry
+from causalscript.core.learning_logger import LearningLogger
+from causalscript.core.parser import Parser
+from causalscript.core.symbolic_engine import SymbolicEngine
 
 
 def _program_from_source(source: str):

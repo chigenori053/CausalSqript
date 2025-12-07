@@ -1,7 +1,7 @@
 import pytest
 sympy = pytest.importorskip("sympy")
-from core.input_parser import CausalScriptInputParser
-from core.symbolic_engine import SymbolicEngine
+from causalscript.core.input_parser import CausalScriptInputParser
+from causalscript.core.symbolic_engine import SymbolicEngine
 
 class TestIntegralSteps:
     def test_brackets_parsing(self):

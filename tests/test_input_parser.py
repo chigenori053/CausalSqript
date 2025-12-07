@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import pytest
 
-from core.input_parser import CausalScriptInputParser
+from causalscript.core.input_parser import CausalScriptInputParser
 
 
 @pytest.mark.parametrize(

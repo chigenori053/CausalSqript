@@ -5,13 +5,13 @@ from pathlib import Path
 # Add project root to path
 sys.path.append(os.getcwd())
 
-from core.symbolic_engine import SymbolicEngine
-from core.knowledge_registry import KnowledgeRegistry
-from core.input_parser import CausalScriptInputParser
-from core.evaluator import Evaluator, SymbolicEvaluationEngine
-from core.parser import Parser
-from core.learning_logger import LearningLogger
-from core.ast_nodes import ProgramNode
+from causalscript.core.symbolic_engine import SymbolicEngine
+from causalscript.core.knowledge_registry import KnowledgeRegistry
+from causalscript.core.input_parser import CausalScriptInputParser
+from causalscript.core.evaluator import Evaluator, SymbolicEvaluationEngine
+from causalscript.core.parser import Parser
+from causalscript.core.learning_logger import LearningLogger
+from causalscript.core.ast_nodes import ProgramNode
 
 def test_strict_matching():
     print("--- Test Strict Matching ---")

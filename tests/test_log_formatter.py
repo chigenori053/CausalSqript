@@ -1,4 +1,4 @@
-from core.log_formatter import format_record_message, format_records
+from causalscript.core.log_formatter import format_record_message, format_records
 
 
 def test_format_record_message_includes_meta_lines():

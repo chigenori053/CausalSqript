@@ -6,12 +6,12 @@ from unittest.mock import MagicMock
 # Ensure we can import core
 sys.path.append(os.getcwd())
 
-from core.fuzzy.judge import FuzzyJudge, FuzzyThresholdConfig
-from core.fuzzy.types import NormalizedExpr, FuzzyLabel
-from core.fuzzy.encoder import ExpressionEncoder
-from core.fuzzy.metric import SimilarityMetric
-from core.causal.causal_analyzers import explain_error
-from core.causal.causal_types import CausalNodeType
+from causalscript.core.fuzzy.judge import FuzzyJudge, FuzzyThresholdConfig
+from causalscript.core.fuzzy.types import NormalizedExpr, FuzzyLabel
+from causalscript.core.fuzzy.encoder import ExpressionEncoder
+from causalscript.core.fuzzy.metric import SimilarityMetric
+from causalscript.core.causal.causal_analyzers import explain_error
+from causalscript.core.causal.causal_types import CausalNodeType
 
 # Mock Encoder and Metric
 class MockEncoder(ExpressionEncoder):

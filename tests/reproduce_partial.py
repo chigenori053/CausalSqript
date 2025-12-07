@@ -2,14 +2,14 @@ import sys
 import os
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
 
-from core.symbolic_engine import SymbolicEngine
-from core.computation_engine import ComputationEngine
-from core.validation_engine import ValidationEngine
-from core.hint_engine import HintEngine
-from core.core_runtime import CoreRuntime
-from core.parser import Parser
-from core.evaluator import Evaluator
-from core.learning_logger import LearningLogger
+from causalscript.core.symbolic_engine import SymbolicEngine
+from causalscript.core.computation_engine import ComputationEngine
+from causalscript.core.validation_engine import ValidationEngine
+from causalscript.core.hint_engine import HintEngine
+from causalscript.core.core_runtime import CoreRuntime
+from causalscript.core.parser import Parser
+from causalscript.core.evaluator import Evaluator
+from causalscript.core.learning_logger import LearningLogger
 
 # Note: Using 'pi' instead of 'π' for simplicity in python string, 
 # but the parser handles unicode. Let's use unicode to match user example exactly.

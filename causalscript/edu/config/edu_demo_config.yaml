@@ -1,0 +1,17 @@
+{
+  "scenarios": {
+    "basic_arithmetic": {
+      "description": "DSL v2.5 sample with meta/config/prepare blocks",
+      "file": "causalscript/edu/examples/pythagorean.mlang"
+    },
+    "counterfactual": {
+      "description": "Demonstrate counterfactual editing (step + counterfactual block)",
+      "file": "causalscript/edu/examples/counterfactual_demo.mlang",
+      "counterfactual": {
+        "phase": "step",
+        "index": 2,
+        "expression": "8 * scale_factor"
+      }
+    }
+  }
+}

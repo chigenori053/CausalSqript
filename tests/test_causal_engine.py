@@ -1,7 +1,7 @@
 from copy import deepcopy
 
-from core.causal import CausalEngine, CausalGraph, run_causal_analysis
-from core.causal.causal_types import CausalEdge, CausalEdgeType, CausalNode, CausalNodeType
+from causalscript.core.causal import CausalEngine, CausalGraph, run_causal_analysis
+from causalscript.core.causal.causal_types import CausalEdge, CausalEdgeType, CausalNode, CausalNodeType
 
 
 def _base_records():

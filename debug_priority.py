@@ -3,8 +3,8 @@ import os
 from pathlib import Path
 sys.path.append(os.getcwd())
 
-from core.symbolic_engine import SymbolicEngine
-from core.knowledge_registry import KnowledgeRegistry
+from causalscript.core.symbolic_engine import SymbolicEngine
+from causalscript.core.knowledge_registry import KnowledgeRegistry
 
 def debug_priority():
     engine = SymbolicEngine()

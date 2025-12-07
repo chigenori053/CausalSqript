@@ -1,8 +1,8 @@
 import pytest
 
-from core.parser import Parser
-from core import ast_nodes as ast
-from core.errors import SyntaxError
+from causalscript.core.parser import Parser
+from causalscript.core import ast_nodes as ast
+from causalscript.core.errors import SyntaxError
 
 def test_parser_builds_nodes_with_line_numbers():
     source = """# comment

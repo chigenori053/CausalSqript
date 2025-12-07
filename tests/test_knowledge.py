@@ -2,8 +2,8 @@ import pytest
 sympy = pytest.importorskip("sympy")
 from pathlib import Path
 
-from core.knowledge_registry import KnowledgeRegistry
-from core.symbolic_engine import SymbolicEngine
+from causalscript.core.knowledge_registry import KnowledgeRegistry
+from causalscript.core.symbolic_engine import SymbolicEngine
 
 
 def test_knowledge_registry_loads_rules_and_matches():

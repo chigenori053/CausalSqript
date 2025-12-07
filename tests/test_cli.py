@@ -4,8 +4,8 @@ from pathlib import Path
 import pytest
 
 from main import main
-from pro.cli import main as pro_main
-from edu.demo.edu_demo_runner import main as edu_demo_main
+from causalscript.pro.cli import main as pro_main
+from causalscript.edu.demo.edu_demo_runner import main as edu_demo_main
 
 
 def test_cli_hello_world(capsys):
@@ -31,7 +31,7 @@ def test_cli_runs_inline_code(capsys):
 
 def test_cli_runs_file(capsys):
     capsys.readouterr()
-    sample_path = Path("edu/examples/pythagorean.mlang")
+    sample_path = Path("causalscript/edu/examples/pythagorean.mlang")
     result = main(["--file", str(sample_path)])
     captured = capsys.readouterr()
     assert result == 0

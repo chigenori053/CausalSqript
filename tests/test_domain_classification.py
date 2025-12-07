@@ -1,9 +1,9 @@
 import pytest
 sympy = pytest.importorskip("sympy")
 from pathlib import Path
-from core.symbolic_engine import SymbolicEngine
-from core.knowledge_registry import KnowledgeRegistry
-from core.classifier import ExpressionClassifier
+from causalscript.core.symbolic_engine import SymbolicEngine
+from causalscript.core.knowledge_registry import KnowledgeRegistry
+from causalscript.core.classifier import ExpressionClassifier
 
 class TestDomainClassification:
     def setup_method(self):
@@ -51,7 +51,7 @@ class TestDomainClassification:
 
     def test_evaluator_integration(self):
         # Verify that SymbolicEvaluationEngine uses the classifier
-        from core.evaluator import SymbolicEvaluationEngine
+        from causalscript.core.evaluator import SymbolicEvaluationEngine
         
         engine = SymbolicEvaluationEngine(self.engine, self.registry)
         engine.set("x + x")

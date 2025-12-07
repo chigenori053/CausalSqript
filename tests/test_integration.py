@@ -1,13 +1,13 @@
 import pytest
 sympy = pytest.importorskip("sympy")
-from core.core_runtime import CoreRuntime
-from core.computation_engine import ComputationEngine
-from core.validation_engine import ValidationEngine
-from core.hint_engine import HintEngine
-from core.symbolic_engine import SymbolicEngine
-from core.exercise_spec import ExerciseSpec
-from core.evaluator import Evaluator
-from core import ast_nodes as ast
+from causalscript.core.core_runtime import CoreRuntime
+from causalscript.core.computation_engine import ComputationEngine
+from causalscript.core.validation_engine import ValidationEngine
+from causalscript.core.hint_engine import HintEngine
+from causalscript.core.symbolic_engine import SymbolicEngine
+from causalscript.core.exercise_spec import ExerciseSpec
+from causalscript.core.evaluator import Evaluator
+from causalscript.core import ast_nodes as ast
 
 @pytest.fixture
 def runtime():

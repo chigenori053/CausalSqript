@@ -1,6 +1,6 @@
 
 import pytest
-from core.decision_theory import DecisionConfig, DecisionEngine, DecisionAction, DecisionState, UtilityMatrix
+from causalscript.core.decision_theory import DecisionConfig, DecisionEngine, DecisionAction, DecisionState, UtilityMatrix
 
 def test_utility_matrix_structure():
     matrix = UtilityMatrix(

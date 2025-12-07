@@ -3,7 +3,7 @@ import sys
 import os
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 
-from core.symbolic_engine import SymbolicEngine
+from causalscript.core.symbolic_engine import SymbolicEngine
 
 def debug_match():
     engine = SymbolicEngine()

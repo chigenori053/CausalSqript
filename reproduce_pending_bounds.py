@@ -1,6 +1,6 @@
-from core.symbolic_engine import SymbolicEngine
-from core.knowledge_registry import KnowledgeRegistry
-from core.evaluator import SymbolicEvaluationEngine
+from causalscript.core.symbolic_engine import SymbolicEngine
+from causalscript.core.knowledge_registry import KnowledgeRegistry
+from causalscript.core.evaluator import SymbolicEvaluationEngine
 from pathlib import Path
 import pytest
 

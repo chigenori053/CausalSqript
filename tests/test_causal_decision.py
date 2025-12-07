@@ -1,7 +1,7 @@
 import pytest
-from core.causal.causal_engine import CausalEngine
-from core.causal.causal_types import CausalNodeType
-from core.decision_theory import DecisionConfig
+from causalscript.core.causal.causal_engine import CausalEngine
+from causalscript.core.causal.causal_types import CausalNodeType
+from causalscript.core.decision_theory import DecisionConfig
 
 class TestCausalDecision:
     def test_suggest_fix_candidates_encouraging(self):

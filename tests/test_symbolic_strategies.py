@@ -1,7 +1,7 @@
 import pytest
-from core.symbolic_engine import SymbolicEngine
-from core.math_category import MathCategory
-from core.symbolic_strategies import (
+from causalscript.core.symbolic_engine import SymbolicEngine
+from causalscript.core.math_category import MathCategory
+from causalscript.core.symbolic_strategies import (
     ArithmeticStrategy,
     AlgebraStrategy,
     CalculusStrategy

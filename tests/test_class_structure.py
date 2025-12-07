@@ -1,7 +1,7 @@
 import pytest
-from core.parser import Parser
-from core.evaluator import Evaluator, SymbolicEvaluationEngine
-from core.symbolic_engine import SymbolicEngine
+from causalscript.core.parser import Parser
+from causalscript.core.evaluator import Evaluator, SymbolicEvaluationEngine
+from causalscript.core.symbolic_engine import SymbolicEngine
 
 def test_hybrid_usage():
     dsl = """

@@ -6,7 +6,7 @@ try:
 except ImportError:
     sympy = None
 
-from core.geometry_engine import GeometryEngine
+from causalscript.core.geometry_engine import GeometryEngine
 
 @pytest.fixture
 def engine():

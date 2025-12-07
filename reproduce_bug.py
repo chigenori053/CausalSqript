@@ -4,8 +4,8 @@ import os
 
 sys.path.append(os.getcwd())
 
-from core.parser import Parser
-from core.i18n import get_language_pack
+from causalscript.core.parser import Parser
+from causalscript.core.i18n import get_language_pack
 
 # Test 1: Implicit End (Should pass)
 code_implicit_end = """

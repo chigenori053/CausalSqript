@@ -2,7 +2,7 @@ from textwrap import dedent
 
 import pytest
 
-from tools.notebook_runner import execute_mathlang
+from causalscript.tools.notebook_runner import execute_mathlang
 
 
 def test_execute_mathlang_accepts_notebook_friendly_code() -> None:

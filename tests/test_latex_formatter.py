@@ -1,8 +1,8 @@
 import pytest
 sympy = pytest.importorskip("sympy")
-from core.symbolic_engine import SymbolicEngine
-from core.latex_formatter import LaTeXFormatter
-from core.proof_engine import Fact, Step
+from causalscript.core.symbolic_engine import SymbolicEngine
+from causalscript.core.latex_formatter import LaTeXFormatter
+from causalscript.core.proof_engine import Fact, Step
 
 def test_format_expression():
     sym_engine = SymbolicEngine()

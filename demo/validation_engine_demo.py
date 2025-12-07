@@ -1,9 +1,9 @@
 """Demo script for ValidationEngine."""
 
-from core.computation_engine import ComputationEngine
-from core.symbolic_engine import SymbolicEngine
-from core.validation_engine import ValidationEngine
-from core.exercise_spec import ExerciseSpec
+from causalscript.core.computation_engine import ComputationEngine
+from causalscript.core.symbolic_engine import SymbolicEngine
+from causalscript.core.validation_engine import ValidationEngine
+from causalscript.core.exercise_spec import ExerciseSpec
 
 
 def main():

@@ -12,23 +12,23 @@ from pathlib import Path
 # Add project root to path
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
 
-from core.symbolic_engine import SymbolicEngine
-from core.computation_engine import ComputationEngine
-from core.validation_engine import ValidationEngine
-from core.hint_engine import HintEngine
-from core.core_runtime import CoreRuntime
-from core.latex_formatter import LaTeXFormatter
-from core.parser import Parser
-from core.evaluator import Evaluator
-from core.learning_logger import LearningLogger
-from core.errors import CausalScriptError
-from core.fuzzy.judge import FuzzyJudge
-from core.fuzzy.encoder import ExpressionEncoder
-from core.fuzzy.metric import SimilarityMetric
-from core.unit_engine import get_common_units
-from core.decision_theory import DecisionConfig
-from core.hint_engine import HintPersona
-from core.knowledge_registry import KnowledgeRegistry
+from causalscript.core.symbolic_engine import SymbolicEngine
+from causalscript.core.computation_engine import ComputationEngine
+from causalscript.core.validation_engine import ValidationEngine
+from causalscript.core.hint_engine import HintEngine
+from causalscript.core.core_runtime import CoreRuntime
+from causalscript.core.latex_formatter import LaTeXFormatter
+from causalscript.core.parser import Parser
+from causalscript.core.evaluator import Evaluator
+from causalscript.core.learning_logger import LearningLogger
+from causalscript.core.errors import CausalScriptError
+from causalscript.core.fuzzy.judge import FuzzyJudge
+from causalscript.core.fuzzy.encoder import ExpressionEncoder
+from causalscript.core.fuzzy.metric import SimilarityMetric
+from causalscript.core.unit_engine import get_common_units
+from causalscript.core.decision_theory import DecisionConfig
+from causalscript.core.hint_engine import HintPersona
+from causalscript.core.knowledge_registry import KnowledgeRegistry
 
 # Page Config
 st.set_page_config(
@@ -58,7 +58,7 @@ def get_engines():
     
     val_engine = ValidationEngine(comp_engine, fuzzy_judge=fuzzy_judge)
     hint_engine = HintEngine(comp_engine)
-    from core.classifier import ExpressionClassifier
+    from causalscript.core.classifier import ExpressionClassifier
     classifier = ExpressionClassifier(sym_engine)
     formatter = LaTeXFormatter(sym_engine, classifier)
     

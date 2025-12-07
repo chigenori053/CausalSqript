@@ -3,9 +3,9 @@ import sys
 import os
 sys.path.append(os.getcwd())
 
-from core.symbolic_engine import SymbolicEngine
-from core.computation_engine import ComputationEngine
-from core.hint_engine import HintEngine
+from causalscript.core.symbolic_engine import SymbolicEngine
+from causalscript.core.computation_engine import ComputationEngine
+from causalscript.core.hint_engine import HintEngine
 
 def test_hint():
     sym_engine = SymbolicEngine()

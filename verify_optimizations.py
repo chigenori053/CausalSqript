@@ -6,14 +6,14 @@ from pathlib import Path
 # Add project root to path
 sys.path.insert(0, os.path.abspath(os.path.dirname(__file__)))
 
-from core.symbolic_engine import SymbolicEngine
-from core.classifier import ExpressionClassifier
-from core.latex_formatter import LaTeXFormatter
-from core.knowledge_registry import KnowledgeRegistry
-from core.core_runtime import CoreRuntime
-from core.computation_engine import ComputationEngine
-from core.validation_engine import ValidationEngine
-from core.hint_engine import HintEngine
+from causalscript.core.symbolic_engine import SymbolicEngine
+from causalscript.core.classifier import ExpressionClassifier
+from causalscript.core.latex_formatter import LaTeXFormatter
+from causalscript.core.knowledge_registry import KnowledgeRegistry
+from causalscript.core.core_runtime import CoreRuntime
+from causalscript.core.computation_engine import ComputationEngine
+from causalscript.core.validation_engine import ValidationEngine
+from causalscript.core.hint_engine import HintEngine
 
 def verify_rendering_optimization():
     print("\n--- Verifying Rendering Optimization ---")

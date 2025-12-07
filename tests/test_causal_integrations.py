@@ -1,10 +1,10 @@
-from core.causal import CausalEngine
-from core.causal.causal_types import CausalNodeType
-from core.evaluator import Evaluator, SymbolicEvaluationEngine
-from core.knowledge_registry import KnowledgeRegistry
-from core.learning_logger import LearningLogger
-from core.parser import Parser
-from core.symbolic_engine import SymbolicEngine
+from causalscript.core.causal import CausalEngine
+from causalscript.core.causal.causal_types import CausalNodeType
+from causalscript.core.evaluator import Evaluator, SymbolicEvaluationEngine
+from causalscript.core.knowledge_registry import KnowledgeRegistry
+from causalscript.core.learning_logger import LearningLogger
+from causalscript.core.parser import Parser
+from causalscript.core.symbolic_engine import SymbolicEngine
 from pathlib import Path
 
 

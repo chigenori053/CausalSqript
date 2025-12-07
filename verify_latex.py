@@ -4,7 +4,7 @@ import os
 # Add project root to path
 sys.path.append(os.getcwd())
 
-from core.symbolic_engine import SymbolicEngine
+from causalscript.core.symbolic_engine import SymbolicEngine
 
 def test_latex_evaluation():
     engine = SymbolicEngine()

@@ -1,7 +1,7 @@
 import time
 import math
-from core.symbolic_engine import SymbolicEngine
-from core.computation_engine import ComputationEngine
+from causalscript.core.symbolic_engine import SymbolicEngine
+from causalscript.core.computation_engine import ComputationEngine
 
 def verify_parallel():
     print("Initializing engines...")

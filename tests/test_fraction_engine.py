@@ -1,7 +1,7 @@
 import pytest
 
-from core.fraction_engine import FractionEngine
-from core import ast_nodes as ast
+from causalscript.core.fraction_engine import FractionEngine
+from causalscript.core import ast_nodes as ast
 
 
 @pytest.fixture

@@ -1,6 +1,6 @@
 import unittest
-from core.parser import Parser
-from core.errors import SyntaxError
+from causalscript.core.parser import Parser
+from causalscript.core.errors import SyntaxError
 
 class TestParserTypos(unittest.TestCase):
     def assert_suggestion(self, script, expected_suggestion):

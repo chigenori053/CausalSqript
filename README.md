@@ -11,11 +11,11 @@ CausalScript (Mathematical Thinking Language) is a DSL and tooling suite that ca
 ## Architecture Snapshot
 | Layer | Key Modules | Purpose |
 |-------|-------------|---------|
-| DSL Core | `core/parser.py`, `core/ast_nodes.py` | Parse CausalScript syntax into AST structures. |
-| Execution | `core/evaluator.py` | Replay reasoning steps and emit annotated outputs. |
-| Polynomial | `core/polynomial.py`, `core/polynomial_evaluator.py` | Evaluate multivariate polynomials via algebraic laws. |
-| Optimization | `core/optimizer.py` | Inline assignments and fold constants to streamline traces. |
-| SymbolicAI | `core/symbolic_engine.py` | Simplify expressions and generate explanations via SymPy/custom logic. |
+| DSL Core | `causalscript/core/parser.py`, `causalscript/core/ast_nodes.py` | Parse CausalScript syntax into AST structures. |
+| Execution | `causalscript/core/evaluator.py` | Replay reasoning steps and emit annotated outputs. |
+| Polynomial | `causalscript/core/polynomial.py`, `causalscript/core/polynomial_evaluator.py` | Evaluate multivariate polynomials via algebraic laws. |
+| Optimization | `causalscript/core/optimizer.py` | Inline assignments and fold constants to streamline traces. |
+| SymbolicAI | `causalscript/core/symbolic_engine.py` | Simplify expressions and generate explanations via SymPy/custom logic. |
 | Interfaces | JupyterLab / Streamlit | Provide interactive teaching and demo surfaces. |
 | Testing | `pytest` suites under `tests/` | Guard parser/evaluator semantics. |
 
@@ -59,16 +59,16 @@ End: 32
 ```
 
 ## CLI Usage
-- Run a `.mlang` file: `python main.py --file edu/examples/pythagorean.mlang`
+- Run a `.mlang` file: `python main.py --file causalscript/edu/examples/pythagorean.mlang`
 - Run an inline snippet: `python main.py -c "problem: 1 + 1\nend: 2"`
-- Switch to the polynomial evaluator: `python main.py --mode polynomial --file edu/examples/polynomial_arithmetic.mlang`
+- Switch to the polynomial evaluator: `python main.py --mode polynomial --file causalscript/edu/examples/polynomial_arithmetic.mlang`
 - Run the built-in Hello World self-test: `python main.py --hello-world-test`
-- Simulate a counterfactual: `python main.py --file edu/examples/counterfactual_demo.mlang --counterfactual '{"phase": "step", "index": 2, "expression": "8 * 4"}'`
-- Run the Edu demo runner: `python -m edu.demo.edu_demo_runner basic_arithmetic`
-- Run the Pro CLI: `python -m pro.cli -c "problem: (x + 1) * (x + 2)\nend: (x + 1) * (x + 2)"`
-- Run the Pro demo runner: `python -m pro.demo_runner counterfactual`
-- Run the Edu CLI by scenario name (see `edu/cli/scenarios/config.json`): `python -m edu.cli.main --scenario arithmetic`
-- Run the Pro CLI scenario: `python -m pro.cli.main --mode causal --scenario basic` (`pro/cli/scenarios/config.json`)
+- Simulate a counterfactual: `python main.py --file causalscript/edu/examples/counterfactual_demo.mlang --counterfactual '{"phase": "step", "index": 2, "expression": "8 * 4"}'`
+- Run the Edu demo runner: `python -m causalscript.edu.demo.edu_demo_runner basic_arithmetic`
+- Run the Pro CLI: `python -m causalscript.pro.cli -c "problem: (x + 1) * (x + 2)\nend: (x + 1) * (x + 2)"`
+- Run the Pro demo runner: `python -m causalscript.pro.demo_runner counterfactual`
+- Run the Edu CLI by scenario name (see `causalscript/edu/cli/scenarios/config.json`): `python -m causalscript.edu.cli.main --scenario arithmetic`
+- Run the Pro CLI scenario: `python -m causalscript.pro.cli.main --mode causal --scenario basic` (`causalscript/pro/cli/scenarios/config.json`)
 - Run the Demo CLI minimal scenario: `python -m demo.demo_cli --scenario minimal` (`demo/scenarios/config.json`)
 
 The CLI prints rendered text for every `problem`, `step`, `explain`, and `end` clause. Symbolic mode verifies steps with SymPy and the knowledge registry, while polynomial mode expands expressions before comparing them.  
@@ -77,14 +77,14 @@ The CLI prints rendered text for every `problem`, `step`, `explain`, and `end` c
 ### Scenario Configuration Files
 Each CLI keeps scenario definitions under its `scenarios/config.json`. These JSON files list `file`, optional `mode` (`symbolic` / `polynomial` / `causal`), and `counterfactual` payloads that `--scenario` picks up automatically:
 
-- Edu: `edu/cli/scenarios/config.json`
-- Pro: `pro/cli/scenarios/config.json`
+- Edu: `causalscript/edu/cli/scenarios/config.json`
+- Pro: `causalscript/pro/cli/scenarios/config.json`
 - Demo: `demo/scenarios/config.json`
 
 You can add new entries to those files to expose additional `.mlang` programs without changing the CLI flags used by CI.
 
 ## Pro Edition
-プロフェッショナル向け CLI / デモについては `README_PRO.md` を参照。`python -m pro.cli ...` で直接呼び出せます。
+プロフェッショナル向け CLI / デモについては `README_PRO.md` を参照。`python -m causalscript.pro.cli ...` で直接呼び出せます。
 
 ## Learning Logs & Notebook Demo
 CausalScript now ships with a lightweight `LearningLogger` that records `problem → step → end` events (including rule IDs supplied by the knowledge base) as JSON. You can pass the logger into an evaluator:
@@ -92,20 +92,20 @@ CausalScript now ships with a lightweight `LearningLogger` that records `problem
 ```python
 from pathlib import Path
 
-from core.learning_logger import LearningLogger
-from core.parser import Parser
-from core.evaluator import Evaluator, SymbolicEvaluationEngine
-from core.symbolic_engine import SymbolicEngine
-from core.knowledge_registry import KnowledgeRegistry
+from causalscript.core.learning_logger import LearningLogger
+from causalscript.core.parser import Parser
+from causalscript.core.evaluator import Evaluator, SymbolicEvaluationEngine
+from causalscript.core.symbolic_engine import SymbolicEngine
+from causalscript.core.knowledge_registry import KnowledgeRegistry
 
-source = \"\"\"problem: (2 + 3) * 4
+source = """problem: (2 + 3) * 4
 step: 5 * 4
-end: 20\"\"\"
+end: 20"""
 
 logger = LearningLogger()
 program = Parser(source).parse()
 symbolic_engine = SymbolicEngine()
-registry = KnowledgeRegistry(Path("core/knowledge"), symbolic_engine)
+registry = KnowledgeRegistry(Path("causalscript/core/knowledge"), symbolic_engine)
 engine = SymbolicEvaluationEngine(symbolic_engine, registry)
 Evaluator(program, engine=engine, learning_logger=logger).run()
 print(logger.to_list())
@@ -113,10 +113,10 @@ print(logger.to_list())
 
 An executable walkthrough lives in `notebooks/Learning_Log_Demo.ipynb`, which illustrates how to import the repo modules inside Jupyter and display the collected JSON using `IPython.display.JSON`.
 
-To render the same records as compact human-readable messages (useful for notebooks or debugging), use `core.log_formatter`:
+To render the same records as compact human-readable messages (useful for notebooks or debugging), use `causalscript.core.log_formatter`:
 
 ```python
-from core.log_formatter import format_records
+from causalscript.core.log_formatter import format_records
 
 for line in format_records(logger.to_list()):
     print(line)
@@ -142,13 +142,13 @@ source = sample.source
 ## Notebook Cell Magic
 Jupyter 上で DSL をそのままタイプして実行したい場合は、専用マジックを読み込んで `problem:`/`step:`/`end:` を直接入力できます。
 
-1. `%load_ext tools.notebook_magic`
+1. `%load_ext causalscript.tools.notebook_magic`
 2. DSL セルの先頭に `%%mathlang [--mode symbolic|polynomial] [--no-meta]`
 3. 以降の行に DSL を記述して実行
 
 例:
 ```text
-%load_ext tools.notebook_magic
+%load_ext causalscript.tools.notebook_magic
 
 %%mathlang
 problem: (x - y)^2
@@ -159,11 +159,11 @@ end: done
 `x^2` や `2xy`、`(x - y)(x - y)` のような人間向け表記は自動で `x**2` / `2*x*y` / `(x - y)*(x - y)` に正規化され、SyntaxError を気にせず Notebook 上で MathLang を検証できます。
 
 ## Causal Analysis in Notebooks
-Notebook から因果推論を呼び出す場合は、LearningLogger の記録を `core.causal.integration.run_causal_analysis` に渡すだけです。
+Notebook から因果推論を呼び出す場合は、LearningLogger の記録を `causalscript.core.causal.integration.run_causal_analysis` に渡すだけです。
 
 ```python
-from core.causal.integration import run_causal_analysis
-from core.causal.graph_utils import graph_to_text
+from causalscript.core.causal.integration import run_causal_analysis
+from causalscript.core.causal.graph_utils import graph_to_text
 
 records = logger.to_list()
 engine, report = run_causal_analysis(records, include_graph=True)
@@ -178,7 +178,7 @@ for error_id in report["errors"]:
 print(graph_to_text(report["graph"]))
 ```
 
-`report["graph"]` にはノード・エッジ情報が入るため、テキスト可視化に加えて Graphviz/DOT ツールへもそのまま渡せます（`core.causal.graph_utils.graph_to_dot` 参照）。
+`report["graph"]` にはノード・エッジ情報が入るため、テキスト可視化に加えて Graphviz/DOT ツールへもそのまま渡せます（`causalscript.core.causal.graph_utils.graph_to_dot` 参照）。
 
 ## Roadmap (Draft)
 1. **Phase 1** – Parser/Evaluator foundation (target: mid Nov 2025)

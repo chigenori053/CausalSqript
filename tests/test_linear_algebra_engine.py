@@ -1,6 +1,6 @@
 import pytest
 
-from core.linear_algebra_engine import LinearAlgebraEngine
+from causalscript.core.linear_algebra_engine import LinearAlgebraEngine
 
 
 @pytest.fixture

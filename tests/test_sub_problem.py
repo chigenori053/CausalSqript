@@ -1,14 +1,14 @@
 import unittest
 import pytest
-from core.symbolic_engine import SymbolicEngine
-from core.computation_engine import ComputationEngine
-from core.validation_engine import ValidationEngine
-from core.hint_engine import HintEngine
-from core.core_runtime import CoreRuntime
-from core.parser import Parser
+from causalscript.core.symbolic_engine import SymbolicEngine
+from causalscript.core.computation_engine import ComputationEngine
+from causalscript.core.validation_engine import ValidationEngine
+from causalscript.core.hint_engine import HintEngine
+from causalscript.core.core_runtime import CoreRuntime
+from causalscript.core.parser import Parser
 sympy = pytest.importorskip("sympy")
-from core.evaluator import Evaluator
-from core.learning_logger import LearningLogger
+from causalscript.core.evaluator import Evaluator
+from causalscript.core.learning_logger import LearningLogger
 
 class TestSubProblem(unittest.TestCase):
     def setUp(self):

@@ -1,8 +1,8 @@
 import unittest
-from core.symbolic_engine import SymbolicEngine
-from core.evaluator import Evaluator, Engine
-from core.learning_logger import LearningLogger
-from core.parser import Parser
+from causalscript.core.symbolic_engine import SymbolicEngine
+from causalscript.core.evaluator import Evaluator, Engine
+from causalscript.core.learning_logger import LearningLogger
+from causalscript.core.parser import Parser
 
 class MockEngine(Engine):
     def __init__(self, sym_engine):

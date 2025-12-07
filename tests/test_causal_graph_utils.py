@@ -1,4 +1,4 @@
-from core.causal.graph_utils import graph_to_dot, graph_to_text
+from causalscript.core.causal.graph_utils import graph_to_dot, graph_to_text
 
 
 def _sample_graph():

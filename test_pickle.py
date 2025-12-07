@@ -1,7 +1,7 @@
 import pickle
-from core.symbolic_engine import SymbolicEngine
-from core.geometry_engine import GeometryEngine
-from core.computation_engine import ComputationEngine
+from causalscript.core.symbolic_engine import SymbolicEngine
+from causalscript.core.geometry_engine import GeometryEngine
+from causalscript.core.computation_engine import ComputationEngine
 
 def test_pickle():
     sym_engine = SymbolicEngine()

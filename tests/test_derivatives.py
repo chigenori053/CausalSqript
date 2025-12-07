@@ -1,5 +1,5 @@
 import pytest
-from core.input_parser import CausalScriptInputParser
+from causalscript.core.input_parser import CausalScriptInputParser
 
 class TestDerivatives:
     def test_leibniz_simple(self):

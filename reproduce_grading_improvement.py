@@ -1,12 +1,12 @@
 
 import unittest
 from unittest.mock import MagicMock
-from core.core_runtime import CoreRuntime
-from core.computation_engine import ComputationEngine
-from core.validation_engine import ValidationEngine
-from core.hint_engine import HintEngine
-from core.symbolic_engine import SymbolicEngine
-from core.fuzzy.types import FuzzyResult, FuzzyLabel, FuzzyScore
+from causalscript.core.core_runtime import CoreRuntime
+from causalscript.core.computation_engine import ComputationEngine
+from causalscript.core.validation_engine import ValidationEngine
+from causalscript.core.hint_engine import HintEngine
+from causalscript.core.symbolic_engine import SymbolicEngine
+from causalscript.core.fuzzy.types import FuzzyResult, FuzzyLabel, FuzzyScore
 
 class TestGradingImprovement(unittest.TestCase):
     def setUp(self):

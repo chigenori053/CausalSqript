@@ -1,8 +1,8 @@
 """Tests for the CausalScript Core DSL v2.5 parser."""
 
 import pytest
-from core.parser import Parser
-from core.ast_nodes import (
+from causalscript.core.parser import Parser
+from causalscript.core.ast_nodes import (
     MetaNode,
     ConfigNode,
     ModeNode,

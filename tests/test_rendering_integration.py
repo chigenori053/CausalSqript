@@ -1,9 +1,9 @@
 import pytest
-from core.core_runtime import CoreRuntime
-from core.computation_engine import ComputationEngine
-from core.validation_engine import ValidationEngine
-from core.hint_engine import HintEngine
-from core.symbolic_engine import SymbolicEngine
+from causalscript.core.core_runtime import CoreRuntime
+from causalscript.core.computation_engine import ComputationEngine
+from causalscript.core.validation_engine import ValidationEngine
+from causalscript.core.hint_engine import HintEngine
+from causalscript.core.symbolic_engine import SymbolicEngine
 
 @pytest.fixture
 def runtime_setup():
@@ -67,8 +67,8 @@ def test_rendering_statistics(runtime_setup):
     runtime._current_category = runtime.category_identifier.identify("mean([1,2,3])") # statistics
     
     # Create a dummy result to test the engine directly if runtime integration is hard to trigger exactly
-    from core.renderers import RenderingEngine
-    from core.math_category import MathCategory
+    from causalscript.core.renderers import RenderingEngine
+    from causalscript.core.math_category import MathCategory
     
     engine = RenderingEngine()
     result = {

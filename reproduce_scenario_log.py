@@ -1,7 +1,7 @@
-from core.parser import Parser
-from core.evaluator import Evaluator, SymbolicEvaluationEngine
-from core.symbolic_engine import SymbolicEngine
-from core.learning_logger import LearningLogger
+from causalscript.core.parser import Parser
+from causalscript.core.evaluator import Evaluator, SymbolicEvaluationEngine
+from causalscript.core.symbolic_engine import SymbolicEngine
+from causalscript.core.learning_logger import LearningLogger
 
 def test_scenario_logging():
     script = """

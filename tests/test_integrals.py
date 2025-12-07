@@ -1,5 +1,5 @@
 import pytest
-from core.input_parser import CausalScriptInputParser
+from causalscript.core.input_parser import CausalScriptInputParser
 
 class TestIntegrals:
     def test_indefinite_integral(self):

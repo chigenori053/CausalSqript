@@ -1,7 +1,7 @@
 import pytest
 
-from core.symbolic_engine import SymbolicEngine
-from core.errors import InvalidExprError
+from causalscript.core.symbolic_engine import SymbolicEngine
+from causalscript.core.errors import InvalidExprError
 
 
 def test_is_equiv_checks_math_equivalence():

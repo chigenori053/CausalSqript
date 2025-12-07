@@ -1,8 +1,8 @@
 import pytest
-from core.renderers import ContentRenderer, RenderContext
-from core.knowledge_registry import KnowledgeRegistry, KnowledgeNode
-from core.symbolic_engine import SymbolicEngine
-from core.math_category import MathCategory
+from causalscript.core.renderers import ContentRenderer, RenderContext
+from causalscript.core.knowledge_registry import KnowledgeRegistry, KnowledgeNode
+from causalscript.core.symbolic_engine import SymbolicEngine
+from causalscript.core.math_category import MathCategory
 from unittest.mock import MagicMock
 
 class TestCategoryRendering:

@@ -1,9 +1,9 @@
-from core.parser import Parser
-from core.polynomial_evaluator import PolynomialEvaluator
-from core.learning_logger import LearningLogger
-from core.symbolic_engine import SymbolicEngine
-from core.fuzzy.types import FuzzyLabel, FuzzyResult, FuzzyScore
-from core.fuzzy.types import FuzzyLabel, FuzzyResult, FuzzyScore
+from causalscript.core.parser import Parser
+from causalscript.core.polynomial_evaluator import PolynomialEvaluator
+from causalscript.core.learning_logger import LearningLogger
+from causalscript.core.symbolic_engine import SymbolicEngine
+from causalscript.core.fuzzy.types import FuzzyLabel, FuzzyResult, FuzzyScore
+from causalscript.core.fuzzy.types import FuzzyLabel, FuzzyResult, FuzzyScore
 
 
 def _normalizer():

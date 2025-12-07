@@ -5,9 +5,9 @@ from pathlib import Path
 # Add project root to path
 sys.path.insert(0, os.path.abspath(os.path.dirname(__file__)))
 
-from core.symbolic_engine import SymbolicEngine
-from core.knowledge_registry import KnowledgeRegistry
-from core.classifier import ExpressionClassifier
+from causalscript.core.symbolic_engine import SymbolicEngine
+from causalscript.core.knowledge_registry import KnowledgeRegistry
+from causalscript.core.classifier import ExpressionClassifier
 
 def test_calculus_rules():
     print("--- Testing Calculus Rules ---")

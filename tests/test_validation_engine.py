@@ -1,11 +1,11 @@
 """Tests for ValidationEngine."""
 
 import pytest
-from core.computation_engine import ComputationEngine
-from core.symbolic_engine import SymbolicEngine
+from causalscript.core.computation_engine import ComputationEngine
+from causalscript.core.symbolic_engine import SymbolicEngine
 sympy = pytest.importorskip("sympy")
-from core.validation_engine import ValidationEngine, ValidationResult
-from core.exercise_spec import ExerciseSpec
+from causalscript.core.validation_engine import ValidationEngine, ValidationResult
+from causalscript.core.exercise_spec import ExerciseSpec
 
 
 @pytest.fixture

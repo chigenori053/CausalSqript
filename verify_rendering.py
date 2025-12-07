@@ -1,6 +1,6 @@
-from core.symbolic_engine import SymbolicEngine
-from core.classifier import ExpressionClassifier
-from core.latex_formatter import LaTeXFormatter
+from causalscript.core.symbolic_engine import SymbolicEngine
+from causalscript.core.classifier import ExpressionClassifier
+from causalscript.core.latex_formatter import LaTeXFormatter
 
 def verify_rendering():
     engine = SymbolicEngine()

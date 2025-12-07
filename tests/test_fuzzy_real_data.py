@@ -1,11 +1,11 @@
 import json
 from pathlib import Path
 
-from core.fuzzy.config import FuzzyThresholdConfig
-from core.fuzzy.encoder import ExpressionEncoder
-from core.fuzzy.judge import FuzzyJudge
-from core.fuzzy.metric import SimilarityMetric
-from core.fuzzy.types import FuzzyLabel
+from causalscript.core.fuzzy.config import FuzzyThresholdConfig
+from causalscript.core.fuzzy.encoder import ExpressionEncoder
+from causalscript.core.fuzzy.judge import FuzzyJudge
+from causalscript.core.fuzzy.metric import SimilarityMetric
+from causalscript.core.fuzzy.types import FuzzyLabel
 
 
 def _load_cases() -> list[dict]:
