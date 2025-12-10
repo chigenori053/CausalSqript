@@ -420,6 +420,28 @@ class Evaluator:
             meta=meta,
             force_redundant=is_noop,
         )
+
+        # Log fuzzy details if available (restoring behavior for CLI/Tests)
+        details = result.get("details", {})
+        if "fuzzy_score" in details:
+             label = details.get("fuzzy_label", "unknown")
+             score = details.get("fuzzy_score", 0.0)
+             # Reconstruct a metadata object similar to what tests expect
+             fuzzy_meta = {
+                 "label": label,
+                 "score": {"combined_score": score},
+             }
+             if "fuzzy_debug" in details:
+                 fuzzy_meta["debug"] = details["fuzzy_debug"]
+             
+             self._log(
+                phase="fuzzy",
+                expression=node.raw_expr or node.expr,
+                rendered=f"Fuzzy: {label} ({score:.2f})",
+                status="ok",
+                meta=fuzzy_meta,
+            )
+
         if status == "mistake":
             self._has_mistake = True
             if meta.get("critical"):
@@ -428,12 +450,10 @@ class Evaluator:
             self._last_expr_raw = node.raw_expr or node.expr
             self._state = "STEP_RUN"
             return
-
-        self._run_fuzzy_judge(
-            previous_expr=self._last_expr_raw or "",
-            candidate_expr=node.expr,
-            applied_rule_id=result.get("rule_id"),
-        )
+        
+        # Fuzzy logic is now integrated into engine.check_step
+        # If we reached here, the step is invalid despite all checks.
+        pass
 
     def _handle_end(self, node: ast.EndNode) -> None:
         if self._state not in {"PROBLEM_SET", "STEP_RUN"}:
@@ -808,40 +828,6 @@ class Evaluator:
         )
         self._state = "PROBLEM_SET"
 
-    def _run_fuzzy_judge(
-        self,
-        *,
-        previous_expr: str,
-        candidate_expr: str,
-        applied_rule_id: str | None,
-    ) -> None:
-        if self._fuzzy_judge is None or self._current_problem_expr is None:
-            return
-        if self._mode not in {"fuzzy", "causal", "cf"}:
-            return
-
-        normalized_problem = self._normalized_expr(self._current_problem_expr)
-        normalized_prev = self._normalized_expr(previous_expr)
-        normalized_candidate = self._normalized_expr(candidate_expr)
-        fuzzy_result = self._fuzzy_judge.judge_step(
-            problem_expr=normalized_problem,
-            previous_expr=normalized_prev,
-            candidate_expr=normalized_candidate,
-            applied_rule_id=applied_rule_id,
-            candidate_rule_id=None,
-            explain_text=None,
-        )
-        self._log(
-            phase="fuzzy",
-            expression=candidate_expr,
-            rendered=f"Fuzzy: {fuzzy_result['label'].value} ({fuzzy_result['score']['combined_score']:.2f})",
-            status="ok",
-            meta=fuzzy_result,
-        )
-
-    def _normalized_expr(self, expr: str) -> NormalizedExpr:
-        tokens = expr.split()
-        return {"raw": expr, "sympy": expr, "tokens": tokens}
 
     def _fatal(
         self,

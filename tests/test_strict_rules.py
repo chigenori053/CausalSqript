@@ -8,7 +8,7 @@ from causalscript.core.input_parser import CausalScriptInputParser
 class TestStrictRules:
     def setup_method(self):
         self.engine = SymbolicEngine()
-        self.registry = KnowledgeRegistry(Path("core/knowledge"), self.engine)
+        self.registry = KnowledgeRegistry(Path("causalscript/core/knowledge"), self.engine)
 
     def test_subtraction_match(self):
         # 2^3 - 0 should match ARITH-CALC-SUB, not ARITH-CALC-ADD

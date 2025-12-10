@@ -1,4 +1,5 @@
 from __future__ import annotations
+from typing import Any
 
 from causalscript.core.causal import CausalEngine
 from causalscript.core.evaluator import Evaluator, SymbolicEvaluationEngine
@@ -6,7 +7,13 @@ from causalscript.core.fuzzy.types import FuzzyLabel, FuzzyResult, FuzzyScore
 from causalscript.core.knowledge_registry import KnowledgeNode
 from causalscript.core.learning_logger import LearningLogger
 from causalscript.core.parser import Parser
+from causalscript.core.learning_logger import LearningLogger
+from causalscript.core.parser import Parser
 from causalscript.core.symbolic_engine import SymbolicEngine
+from causalscript.core.core_runtime import CoreRuntime
+from causalscript.core.computation_engine import ComputationEngine
+from causalscript.core.validation_engine import ValidationEngine
+from causalscript.core.hint_engine import HintEngine
 
 
 class StubKnowledgeRegistry:
@@ -26,22 +33,27 @@ class StubKnowledgeRegistry:
         return None
 
 
+class DummyEncoder:
+    def normalize(self, text: str) -> Any:
+        return {"raw": text, "sympy": text, "tokens": []}
+
 class RecordingFuzzyJudge:
     def __init__(self) -> None:
         self.calls = 0
         self.last_label: FuzzyLabel | None = None
+        self.encoder = DummyEncoder()
 
     def judge_step(self, **kwargs) -> FuzzyResult:
         self.calls += 1
-        self.last_label = FuzzyLabel.APPROX_EQ
+        self.last_label = FuzzyLabel.CONTRADICT
         return {
             "label": self.last_label,
-            "score": FuzzyScore(
-                expr_similarity=0.6,
-                rule_similarity=0.4,
-                text_similarity=0.0,
-                combined_score=0.5,
-            ),
+            "score": {
+                "expr_similarity": 0.6,
+                "rule_similarity": 0.4,
+                "text_similarity": 0.0,
+                "combined_score": 0.5,
+            },
             "reason": "recorded",
             "debug": {},
         }
@@ -56,12 +68,20 @@ def test_full_reasoning_pipeline():
         end: done
     """
     program = Parser(source).parse()
+    program = Parser(source).parse()
     symbolic = SymbolicEngine()
     knowledge = StubKnowledgeRegistry()
-    eval_engine = SymbolicEvaluationEngine(symbolic, knowledge)
+    
+    comp = ComputationEngine(symbolic)
     fuzzy = RecordingFuzzyJudge()
+    
+    val = ValidationEngine(comp, fuzzy_judge=fuzzy, knowledge_registry=knowledge)
+    hint = HintEngine(comp)
+    
     logger = LearningLogger()
-    evaluator = Evaluator(program, eval_engine, learning_logger=logger, fuzzy_judge=fuzzy)
+    runtime = CoreRuntime(comp, val, hint, knowledge_registry=knowledge, learning_logger=logger)
+    
+    evaluator = Evaluator(program, runtime, learning_logger=logger)
     evaluator.run()
     records = logger.to_list()
     step_records = [record for record in records if record["phase"] == "step"]

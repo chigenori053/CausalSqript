@@ -8,7 +8,7 @@ from causalscript.core.classifier import ExpressionClassifier
 class TestDomainClassification:
     def setup_method(self):
         self.engine = SymbolicEngine()
-        self.registry = KnowledgeRegistry(Path("core/knowledge"), self.engine)
+        self.registry = KnowledgeRegistry(Path("causalscript/core/knowledge"), self.engine)
         self.classifier = ExpressionClassifier(self.engine)
 
     def test_classify_arithmetic(self):

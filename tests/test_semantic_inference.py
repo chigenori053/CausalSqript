@@ -30,9 +30,13 @@ class StubKnowledgeRegistry(KnowledgeRegistry):
             return self.node
         return None
 
+class DummyEncoder:
+    def normalize(self, text: str):
+        return {"raw": text, "sympy": text, "tokens": []}
+
 class StubFuzzyJudge(FuzzyJudge):
     def __init__(self):
-        pass
+        self.encoder = DummyEncoder()
 
     def judge_step(self, **kwargs) -> FuzzyResult:
         return {
@@ -110,19 +114,21 @@ def test_evaluator_invokes_fuzzy_judge_on_mistake():
     
     symbolic_engine = SymbolicEngine()
     computation_engine = ComputationEngine(symbolic_engine)
-    validation_engine = ValidationEngine(computation_engine)
+    fuzzy_judge = StubFuzzyJudge()
+    # Inject fuzzy_judge into ValidationEngine via re-init or just create it correctly above?
+    # Better to create correctly.
+    validation_engine = ValidationEngine(computation_engine, fuzzy_judge=fuzzy_judge)
     hint_engine = HintEngine(computation_engine)
     
     runtime = CoreRuntime(
         computation_engine=computation_engine,
         validation_engine=validation_engine,
-        hint_engine=hint_engine
+        hint_engine=hint_engine,
         # No knowledge registry needed for this test
     )
 
     logger = LearningLogger()
-    fuzzy_judge = StubFuzzyJudge()
-    evaluator = Evaluator(program, runtime, learning_logger=logger, fuzzy_judge=fuzzy_judge)
+    evaluator = Evaluator(program, runtime, learning_logger=logger)
     evaluator.run()
 
     records = logger.to_list()

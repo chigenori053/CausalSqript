@@ -55,12 +55,29 @@ class HintEngine:
         self, 
         user_expr: str, 
         target_expr: str, 
-        hint_rules: Optional[Dict[str, str]] = None
+        hint_rules: Optional[Dict[str, str]] = None,
+        validation_details: Optional[Dict[str, Any]] = None
     ) -> List[HintCandidate]:
         """
         Generate a list of possible hint candidates with confidence scores.
         """
         candidates = []
+        
+        # 0. Review Encouragement (Highest Priority)
+        # If validation marked this as "Review", it means it's mathematically sound but imperfect.
+        if validation_details and (validation_details.get("review_needed") or validation_details.get("status") == "review"):
+             # Extract specific advice from decision engine debug if available
+             advice = "You are extremely close! The logic seems correct, but the form might be slightly off."
+             decision_data = validation_details.get("decision", {})
+             if "debug" in decision_data and "advice" in decision_data["debug"]:
+                 advice = decision_data["debug"]["advice"]
+                 
+             candidates.append(HintCandidate(
+                 content=advice,
+                 type="review_encouragement",
+                 probability=0.99, # Extremely high confidence
+                 source="decision_review"
+             ))
 
         # 1. Validate expression
         try:
@@ -220,12 +237,13 @@ class HintEngine:
         user_expr: str, 
         target_expr: str, 
         hint_rules: Optional[Dict[str, str]] = None,
-        persona: str = "balanced"
+        persona: str = "balanced",
+        validation_details: Optional[Dict[str, Any]] = None
     ) -> HintResult:
         """
         Generate and select a hint.
         """
-        candidates = self.generate_candidates(user_expr, target_expr, hint_rules)
+        candidates = self.generate_candidates(user_expr, target_expr, hint_rules, validation_details)
         return self.select_best_hint(candidates, persona)
 
     def generate_hint_for_spec(self, user_expr: str, spec: ExerciseSpec, persona: str = "balanced") -> HintResult:

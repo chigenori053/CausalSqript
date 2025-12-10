@@ -151,3 +151,28 @@ def test_equation_step_support(runtime):
     assert step1["valid"] is True
     step2 = runtime.check_step("x = 2")
     assert step2["valid"] is True
+
+def test_review_hint_generation(runtime):
+    """Test that 'review' status triggers encouraging hint."""
+    from unittest.mock import MagicMock
+    
+    # Mock ValidationEngine to return REVIEW status
+    # We must ensure CoreRuntime delegates to it and then generates hint
+    mock_details = {"status": "review", "review_needed": True}
+    runtime.validation_engine.validate_step = MagicMock(return_value={
+        "valid": False, 
+        "status": "review", 
+        "details": mock_details
+    })
+    
+    # Set problem first
+    runtime.set("p")
+    
+    # Execute step (content doesn't matter due to mock)
+    result = runtime.check_step("anything")
+    
+    assert result["valid"] is False
+    assert result["details"]["status"] == "review"
+    assert "hint" in result["details"]
+    assert result["details"]["hint"]["type"] == "review_encouragement"
+    assert "extremely close" in result["details"]["hint"]["message"]

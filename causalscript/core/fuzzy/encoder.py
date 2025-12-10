@@ -54,6 +54,16 @@ class ExpressionEncoder:
             value = (byte / 255.0) * 2.0 - 1.0
             vector[i] += value
 
+    def normalize(self, text: str) -> NormalizedExpr:
+        """Normalize raw text into a structured expression."""
+        # Simple tokenization for now
+        tokens = text.replace("(", " ( ").replace(")", " ) ").split()
+        return {
+            "raw": text,
+            "sympy": text,  # Placeholder: ideally use specialized parser
+            "tokens": tokens,
+        }
+
     def _finalize(self, vector: list[float]) -> MLVector:
         norm = sum(value * value for value in vector) ** 0.5
         if norm == 0:

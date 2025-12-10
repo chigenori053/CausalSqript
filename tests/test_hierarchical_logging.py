@@ -18,7 +18,7 @@ class TestHierarchicalLogging(unittest.TestCase):
     def setUp(self):
         self.sym_engine = SymbolicEngine()
         # Point to real knowledge path
-        self.knowledge_path = Path(os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "core", "knowledge")))
+        self.knowledge_path = Path(os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "causalscript", "core", "knowledge")))
         self.registry = KnowledgeRegistry(self.knowledge_path, self.sym_engine)
         
         self.comp_engine = ComputationEngine(self.sym_engine)

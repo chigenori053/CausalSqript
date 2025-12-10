@@ -7,9 +7,9 @@ from pathlib import Path
 @pytest.fixture
 def registry():
     engine = SymbolicEngine()
-    # Assuming tests are run from project root
-    knowledge_path = Path("core/knowledge")
-    return KnowledgeRegistry(knowledge_path, engine)
+    # Fix path
+    base_path = Path("causalscript/core/knowledge")
+    return KnowledgeRegistry(base_path, engine)
 
 def test_strict_matching_integral_vs_add(registry):
     """Verify that an Integral does not match an Add rule."""

@@ -56,18 +56,25 @@ def get_engines():
     metric = SimilarityMetric()
     fuzzy_judge = FuzzyJudge(encoder, metric)
     
-    val_engine = ValidationEngine(comp_engine, fuzzy_judge=fuzzy_judge)
-    hint_engine = HintEngine(comp_engine)
-    from causalscript.core.classifier import ExpressionClassifier
-    classifier = ExpressionClassifier(sym_engine)
-    formatter = LaTeXFormatter(sym_engine, classifier)
-    
-    # Initialize Knowledge Registry
+    # Initialize Knowledge Registry (moved up)
     # Point to the knowledge root directory
     knowledge_path = Path(os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "core", "knowledge")))
     # Create directory if it doesn't exist to avoid errors
     knowledge_path.mkdir(parents=True, exist_ok=True)
     knowledge_registry = KnowledgeRegistry(knowledge_path, sym_engine)
+
+    # Initialize Validation Engine with Knowledge
+    val_engine = ValidationEngine(
+        comp_engine, 
+        fuzzy_judge=fuzzy_judge,
+        knowledge_registry=knowledge_registry
+    )
+    hint_engine = HintEngine(comp_engine)
+    from causalscript.core.classifier import ExpressionClassifier
+    classifier = ExpressionClassifier(sym_engine)
+    formatter = LaTeXFormatter(sym_engine, classifier)
+    
+    # Knowledge Registry already initialized above
     
     # Inject common units into context
     for name, unit in get_common_units().items():

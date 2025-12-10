@@ -9,6 +9,13 @@ from .computation_engine import ComputationEngine
 from .exercise_spec import ExerciseSpec
 from .errors import InvalidExprError, EvaluationError
 from .fuzzy.judge import FuzzyJudge
+from .causal.causal_engine import CausalEngine
+from .decision_theory import DecisionEngine, DecisionAction
+from .fuzzy.judge import FuzzyJudge
+from .causal.causal_engine import CausalEngine
+from .decision_theory import DecisionEngine, DecisionAction
+from .fuzzy.types import FuzzyLabel
+from .knowledge_registry import KnowledgeRegistry
 
 
 @dataclass
@@ -44,17 +51,192 @@ class ValidationEngine:
     - canonical_form: Check if expression matches a specific canonical form
     """
     
-    def __init__(self, computation_engine: ComputationEngine, fuzzy_judge: FuzzyJudge | None = None):
+    
+    def __init__(self, computation_engine: ComputationEngine, fuzzy_judge: FuzzyJudge | None = None, causal_engine: CausalEngine | None = None, decision_engine: DecisionEngine | None = None, knowledge_registry: KnowledgeRegistry | None = None):
         """
         Initialize the validation engine.
         
         Args:
             computation_engine: ComputationEngine instance for symbolic operations
             fuzzy_judge: Optional FuzzyJudge instance for fuzzy validation
+            causal_engine: Optional CausalEngine for context awareness
+            decision_engine: Optional DecisionEngine for strategic judgment
+            knowledge_registry: Optional KnowledgeRegistry for rule-based prediction
         """
         self.computation_engine = computation_engine
         self.symbolic_engine = computation_engine.symbolic_engine
         self.fuzzy_judge = fuzzy_judge
+        self.causal_engine = causal_engine
+        self.decision_engine = decision_engine
+        self.knowledge_registry = knowledge_registry
+
+    def validate_step(self, before: str, after: str, context: dict[str, Any] | None = None) -> dict[str, Any]:
+        """
+        Validate a transition step using the Integrated Evaluation Pipeline.
+        
+        Pipeline:
+        1. Context & Optimization (Causal) [Check if we can skip symbolic]
+        2. Symbolic Check (Strict correctness)
+        3. Fuzzy Perception (Approximation/Typo check if symbolic fails)
+        4. Strategic Decision (Final verdict based on utility)
+        
+        Args:
+            before: The previous expression (or problem specification)
+            after: The user's new expression
+            context: Variable context if any
+            
+        Returns:
+            Dictionary containing validation results and metadata.
+        """
+        # --- 1. Preparation ---
+        # Normalize expressions (handle equations)
+        # Note: Normalization logic currently resides in CoreRuntime. 
+        # Ideally, we passed normalized strings here, but let's assume 'before' and 'after' are passed as raw strings
+        # and we delegate normalization to ComputationEngine or handle it if passed already normalized.
+        # Implementation assumes 'before' and 'after' are the expressions to compare directly.
+        
+        # Apply context if exists
+        before_eval = before
+        after_eval = after
+        if context:
+            try:
+                before_eval = self.computation_engine.substitute(before, context)
+                after_eval = self.computation_engine.substitute(after, context)
+            except Exception:
+                pass # Fallback to raw
+        
+            except Exception:
+                pass # Fallback to raw
+
+        # --- 1. Predictive Skip (Optimization) ---
+        # If the user's step matches a known rule application outcome (predicted by Causal/Knowledge),
+        # we can skip the expensive symbolic check.
+        if self.knowledge_registry:
+            try:
+                # Use raw 'before' as knowledge rules are often defined on raw patterns (with wildcards).
+                # But 'before_eval' might be better if variables are involved?
+                # KnowledgeRegistry uses 'match_structure' which handles structure.
+                # Let's use 'before' (user input form) to match rules written for user input form.
+                candidates = self.knowledge_registry.suggest_outcomes(before)
+                norm_after = "".join(after.split())
+                
+                for cand in candidates:
+                    if "".join(cand.split()) == norm_after:
+                         return {
+                            "valid": True,
+                            "status": "correct",
+                            "details": {"method": "predictive_skip", "candidate": cand}
+                         }
+            except Exception:
+                pass
+        
+        # --- 2. Symbolic Check ---
+        is_valid = False
+        is_partial = False
+        # We can reuse the extensive logic from CoreRuntime here or simplify.
+        # For now, let's use the symbolic engine's is_equiv.
+        try:
+             is_valid = self.symbolic_engine.is_equiv(before_eval, after_eval)
+        except Exception:
+             is_valid = False
+             
+        # TODO: Add partial calculation logic if needed (moved from CoreRuntime)
+        
+        # If valid, we are potentially done, unless we want to "Review" valid steps (e.g. redundancy)
+        if is_valid:
+            return {
+                "valid": True,
+                "status": "correct",
+                "details": {}
+            }
+
+        # --- 3. Fuzzy Perception ---
+        fuzzy_score = 0.0
+        fuzzy_label = None
+        fuzzy_debug = {}
+        
+        if self.fuzzy_judge:
+            try:
+                # We use 'before' as both problem and previous for single-step check
+                # In a full flow, CausalEngine would provide the true 'problem_expr'.
+                # Here we treat the previous step as the reference.
+                encoder = self.fuzzy_judge.encoder
+                norm_before = encoder.normalize(before)
+                norm_after = encoder.normalize(after)
+                
+                fuzzy_result = self.fuzzy_judge.judge_step(
+                     problem_expr=norm_before,
+                     previous_expr=norm_before,
+                     candidate_expr=norm_after
+                )
+                fuzzy_score = fuzzy_result['score']['combined_score']
+                fuzzy_label = fuzzy_result['label']
+                fuzzy_debug = fuzzy_result.get('debug', {})
+            except Exception:
+                pass
+        
+        # --- 4. Strategic Decision ---
+        action = DecisionAction.REJECT
+        decision_meta = {}
+        
+        if self.decision_engine and self.fuzzy_judge:
+             # Use the decision engine to decide based on fuzzy score
+             # We assume DecisionEngine uses 'probability of match' which maps to fuzzy_score
+             action, utility, debug = self.decision_engine.decide(fuzzy_score)
+             decision_meta = {
+                 "utility": utility,
+                 "debug": debug,
+                 "action": action.value
+             }
+        else:
+             # Fallback if no decision engine: Use simple fuzzy threshold or strict
+             # If fuzzy_label is "high" enough, ACCEPT
+             if fuzzy_label in [FuzzyLabel.EXACT, FuzzyLabel.EQUIVALENT, FuzzyLabel.APPROX_EQ, FuzzyLabel.ANALOGOUS]:
+                 action = DecisionAction.ACCEPT
+             else:
+                 action = DecisionAction.REJECT
+
+        # --- 5. Result Construction ---
+        result_valid = (action == DecisionAction.ACCEPT)
+        
+        # Handling "Review" state
+        # For now, Review -> Valid but with "review" status, or Invalid?
+        # Usually Review means "Correct but needs improvement" or "Incorrect but close".
+        # The prompt says: REVIEW: "惜しい判定。ヒントを出す。" -> Implies might be treated as invalid for progression?
+        # Or Valid but generates a hint.
+        # Let's say: ACCEPT = Valid, REJECT = Invalid.
+        # REVIEW = Invalid (so user stays on step) but with encouraging hint?
+        # OR REVIEW = Valid (proceed) but with warning?
+        # "Mistake" usually blocks progress.
+        # "Review" sounds like "Partial".
+        # Let's map REVIEW to False (Invalid) for now to force user correction, OR True with warning.
+        # "Review" in DecisionTheory often implies "Gather more info" or "Ask user". 
+        # In this context (Education), "Review" likely means "Close, try again (don't fail hard)".
+        # So Valid=False, but Status="review".
+        
+        if action == DecisionAction.ACCEPT:
+            result_valid = True
+            status = "correct"
+        elif action == DecisionAction.REVIEW:
+            result_valid = False # User must fix it? Or is it a 'pass with warning'?
+            # If we mark it valid=False, the system won't advance.
+            # If we mark it valid=True, the system advances.
+            # "惜しい" means "Almost". Usually you have to fix "Almost".
+            result_valid = False
+            status = "review"
+        else:
+            result_valid = False
+            status = "mistake"
+            
+        return {
+            "valid": result_valid,
+            "status": status,
+            "details": {
+                "fuzzy_score": fuzzy_score,
+                "fuzzy_label": fuzzy_label.value if fuzzy_label else None,
+                "decision": decision_meta
+            }
+        }
     
     def check_answer(self, user_expr: str, spec: ExerciseSpec) -> ValidationResult:
         """

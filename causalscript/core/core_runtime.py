@@ -13,10 +13,11 @@ from .exercise_spec import ExerciseSpec
 from .learning_logger import LearningLogger
 from .knowledge_registry import KnowledgeRegistry
 from .function_analysis import FunctionAnalyzer
-from .stats_engine import StatsEngine
-from .trig_engine import TrigHelper
-from .calculus_engine import CalculusEngine
-from .linear_algebra_engine import LinearAlgebraEngine
+# Extensions are imported lazily
+# from .stats_engine import StatsEngine
+# from .trig_engine import TrigHelper
+# from .calculus_engine import CalculusEngine
+# from .linear_algebra_engine import LinearAlgebraEngine
 from .classifier import ExpressionClassifier
 from .category_identifier import CategoryIdentifier
 from .math_category import MathCategory
@@ -84,10 +85,11 @@ class CoreRuntime(Engine):
              self.validation_engine.fuzzy_judge.decision_engine = DecisionEngine(decision_config)
 
         self.function_analyzer = FunctionAnalyzer(computation_engine)
-        self.stats_engine = StatsEngine()
-        self.trig_helper = TrigHelper()
-        self.calculus_engine = CalculusEngine(computation_engine)
-        self.linear_algebra = LinearAlgebraEngine()
+        self.function_analyzer = FunctionAnalyzer(computation_engine)
+        
+        # Extensions (Lazy Loaded)
+        self._extensions: Dict[str, Any] = {}
+        
         self.classifier = ExpressionClassifier(computation_engine.symbolic_engine)
         self.category_identifier = CategoryIdentifier(computation_engine.symbolic_engine)
         
@@ -100,6 +102,53 @@ class CoreRuntime(Engine):
         
         # Initialize Rendering Engine
         self.rendering_engine = RenderingEngine(computation_engine.symbolic_engine)
+
+    def get_extension(self, name: str) -> Any:
+        """
+        Get a computation extension by name, loading it if necessary.
+        
+        Args:
+            name: The name of the extension (e.g., 'calculus', 'linear_algebra')
+            
+        Returns:
+            The requested extension instance.
+        """
+        if name not in self._extensions:
+            self._extensions[name] = self._load_extension(name)
+        return self._extensions[name]
+
+    def _load_extension(self, name: str) -> Any:
+        """Factory for loading extensions."""
+        if name == "calculus":
+            from .calculus_engine import CalculusEngine
+            return CalculusEngine(self.computation_engine)
+        elif name == "linear_algebra":
+            from .linear_algebra_engine import LinearAlgebraEngine
+            return LinearAlgebraEngine()
+        elif name == "stats":
+            from .stats_engine import StatsEngine
+            return StatsEngine()
+        elif name == "trig":
+            from .trig_engine import TrigHelper
+            return TrigHelper()
+        else:
+            raise ValueError(f"Unknown extension: {name}")
+
+    @property
+    def calculus_engine(self) -> Any:
+        return self.get_extension("calculus")
+
+    @property
+    def linear_algebra(self) -> Any:
+        return self.get_extension("linear_algebra")
+
+    @property
+    def stats_engine(self) -> Any:
+        return self.get_extension("stats")
+        
+    @property
+    def trig_helper(self) -> Any:
+        return self.get_extension("trig")
 
     def _normalize_expression(self, expr: str) -> str:
         """
@@ -315,8 +364,12 @@ class CoreRuntime(Engine):
             lhs, rhs = equation
         self._equation_mode = bool(equation)
         after = self._normalize_expression(expr)
-        # Default validation (symbolic)
+        # Default validation (Integrated Pipeline)
         # Apply context if variables are bound
+        # We pass raw strings effectively, normalization handled by validate_step if necessary (or passed normalized)
+        # CoreRuntime normalizes before calling check_step usually? No, check_step receives raw 'expr'.
+        # We compute 'before' and 'after' here.
+        
         if self._context:
             try:
                 before_eval = self.computation_engine.substitute(before, self._context)
@@ -327,8 +380,6 @@ class CoreRuntime(Engine):
         else:
             before_eval = before
             after_eval = after
-            
-        is_valid_symbolic = False
 
         if equation:
             self._equation_mode = True
@@ -348,8 +399,6 @@ class CoreRuntime(Engine):
             is_lhs_equiv = False
             if lhs is not None:
                 is_lhs_equiv = self.computation_engine.symbolic_engine.is_equiv(before_eval, lhs_eval)
-            # We do NOT use scalar equivalence here. LHS must be strictly equivalent to Before
-            # to justify replacing Before with RHS as the new state.
             
             if is_lhs_equiv and rhs is not None:
                 # Check if LHS == RHS
@@ -362,15 +411,24 @@ class CoreRuntime(Engine):
                     # We treat RHS as the new state
                     # We override 'after' to be RHS for the result
                     after = rhs
-                    is_valid_symbolic = True
-                    # Skip the standard check since we already verified it
+
+        # Prepare context for validation
+        validation_context = self._context.copy() if self._context else None
         
-        if not is_valid_symbolic:
-             is_valid_symbolic = self.computation_engine.symbolic_engine.is_equiv(before_eval, after_eval)
-             if not is_valid_symbolic and self._equation_mode:
-                 is_valid_symbolic = self._expressions_equivalent_up_to_scalar(before_eval, after_eval)
+        # Delegate to ValidationEngine
+        val_result = self.validation_engine.validate_step(before, after, context=validation_context)
+
         
-        # Scenario validation
+        is_valid = val_result["valid"]
+        status = val_result["status"]
+        
+        # Fallback: Equation Scalar Equivalence (e.g., dividing both sides by constant)
+        if not is_valid and self._equation_mode:
+             if self._expressions_equivalent_up_to_scalar(before_eval, after_eval):
+                 is_valid = True
+                 status = "correct"
+        
+        # Scenario validation (Keep in CoreRuntime for now)
         scenario_results = {}
         is_valid_scenarios = True
         if self._scenarios:
@@ -378,18 +436,22 @@ class CoreRuntime(Engine):
                 before, after, self._scenarios
             )
             is_valid_scenarios = all(scenario_results.values())
-        
-        is_valid = is_valid_symbolic
+            
         if not is_valid and self._scenarios:
-            is_valid = is_valid_scenarios
+             # Scenarios can override verification failure? 
+             # Or scenarios are stricter?
+             # Old logic: if not valid_symbolic then check scenarios.
+             # If scenarios PASS, then valid.
+             if is_valid_scenarios:
+                 is_valid = True
+                 status = "correct" # Override status
 
-        # Partial Calculation Logic
+        # Partial Calculation Logic (Override invalid)
         is_partial = False
         is_partial_attempt = False
         if not is_valid and equation:
             # Check if this is a valid partial calculation
-            # 1. It must be a valid equation itself (LHS == RHS)
-            #    (e.g., extracting part of the expression and simplifying it)
+            lhs, rhs = equation
             try:
                 lhs_in_before = self.computation_engine.symbolic_engine.is_subexpression(lhs, before) if lhs is not None else False
             except Exception:
@@ -407,37 +469,24 @@ class CoreRuntime(Engine):
                 if lhs_rhs_equiv and lhs_in_before:
                     is_valid = True
                     is_partial = True
+                    status = "partial"
             except Exception:
                 is_partial = False
 
-        # Fuzzy Validation Fallback
-        fuzzy_result = None
-        if not is_valid and hasattr(self.validation_engine, 'fuzzy_judge') and self.validation_engine.fuzzy_judge:
-            try:
-                encoder = self.validation_engine.fuzzy_judge.encoder
-                # Use 'before' as a proxy for problem/previous since we are checking step validity
-                norm_before = encoder.normalize(before)
-                norm_after = encoder.normalize(after)
-                
-                fuzzy_result = self.validation_engine.fuzzy_judge.judge_step(
-                    problem_expr=norm_before,
-                    previous_expr=norm_before,
-                    candidate_expr=norm_after
-                )
-                
-                from causalscript.core.fuzzy.types import FuzzyLabel
-                if fuzzy_result['label'] in [FuzzyLabel.EXACT, FuzzyLabel.EQUIVALENT, FuzzyLabel.APPROX_EQ, FuzzyLabel.ANALOGOUS]:
-                    is_valid = True
-            except Exception:
-                pass
-        
         result = {
             "before": before,
             "after": after,
             "valid": is_valid,
             "rule_id": None,
-            "details": {},
+            "details": val_result.get("details", {}).copy(),
         }
+        
+        # Merge status into details if useful
+        result["details"]["status"] = status
+        
+        # Determine if symbolic validity holds (for precision logic)
+        # If validate_step returns valid without fuzzy details, it considered it symbolically valid.
+        is_valid_symbolic = is_valid and ("fuzzy_score" not in val_result.get("details", {}))
 
         # === Improved Precision Logic ===
         
@@ -458,7 +507,14 @@ class CoreRuntime(Engine):
             
             # Generate hint targeting the correction
             # target=before is used so the hint mechanism sees the transition from Before -> After
-            hint = self.hint_engine.generate_hint(after, before, persona=self.hint_persona)
+            # Generate hint targeting the correction
+            # target=before is used so the hint mechanism sees the transition from Before -> After
+            hint = self.hint_engine.generate_hint(
+                after, 
+                before, 
+                persona=self.hint_persona,
+                validation_details=result["details"]
+            )
             
             feedback_info = {
                 "message": hint.message,
@@ -502,21 +558,19 @@ class CoreRuntime(Engine):
         if self._scenarios:
             result["details"]["scenarios"] = scenario_results
             
-        if fuzzy_result:
-            result["details"]["fuzzy_label"] = fuzzy_result['label'].value
-            result["details"]["fuzzy_score"] = fuzzy_result['score']['combined_score']
-
-            if "decision_action" in fuzzy_result['debug']:
-                result["details"]["decision_action"] = fuzzy_result['debug']["decision_action"]
-            if "decision_utility" in fuzzy_result['debug']:
-                result["details"]["decision_utility"] = fuzzy_result['debug']["decision_utility"]
-            if "decision_utils" in fuzzy_result['debug']:
-                result["details"]["decision_utils"] = fuzzy_result['debug']["decision_utils"]
-
-            if is_valid and not is_valid_symbolic and not is_partial:
-                # If valid via fuzzy but not symbolic, suggest the 'before' state as the corrected form
-                # or simply note that it was fuzzy matched.
-                result["details"]["corrected_form"] = before
+            # The decision details are already in result["details"] due to merging val_result["details"]
+            
+            # Additional processing for REVIEW status?
+            # If status=="review", we might want to ensure it is treated as "valid but check hint"
+            if status == "review":
+                result["details"]["review_needed"] = True
+                
+            if is_valid and not is_partial and status not in ["correct", "partial"]:
+                # If valid via fuzzy (e.g. status="correct" from fuzzy decision?), suggest corrected form
+                # status might be "correct" even if fuzzy.
+                # Check fuzzy_score existence
+                if "fuzzy_score" in result["details"]:
+                    result["details"]["corrected_form"] = before
 
         if is_valid:
             if is_partial:
@@ -532,7 +586,12 @@ class CoreRuntime(Engine):
             # Use the previous expression as the target for the hint
             # This hint generation is now handled by the improved precision logic if it's a mathematical error
             if "hint" not in result["details"]:
-                hint = self.hint_engine.generate_hint(after, before, persona=self.hint_persona)
+                hint = self.hint_engine.generate_hint(
+                    after, 
+                    before, 
+                    persona=self.hint_persona,
+                    validation_details=result["details"]
+                )
                 result["details"]["hint"] = {
                     "message": hint.message,
                     "type": hint.hint_type,

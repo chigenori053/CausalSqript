@@ -15,7 +15,7 @@ def test_knowledge_matching():
     engine = SymbolicEngine()
     
     # Point to the knowledge root directory
-    knowledge_path = Path(os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "core", "knowledge")))
+    knowledge_path = Path(os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "causalscript", "core", "knowledge")))
     registry = KnowledgeRegistry(knowledge_path, engine)
     
     print(f"Loaded {len(registry.nodes)} rules.")

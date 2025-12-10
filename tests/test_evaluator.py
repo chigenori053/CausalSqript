@@ -1,5 +1,6 @@
 import pytest
 
+from typing import Any
 from pathlib import Path
 
 from causalscript.core.evaluator import Evaluator, SymbolicEvaluationEngine, Engine
@@ -15,10 +16,21 @@ def _program_from_source(source: str):
     return Parser(source).parse()
 
 
-def _engine():
+def _engine(fuzzy_judge=None):
+    from causalscript.core.core_runtime import CoreRuntime
+    from causalscript.core.computation_engine import ComputationEngine
+    from causalscript.core.validation_engine import ValidationEngine
+    from causalscript.core.hint_engine import HintEngine
+    
     sym = SymbolicEngine()
-    registry = KnowledgeRegistry(Path("core/knowledge"), sym)
-    return SymbolicEvaluationEngine(sym, registry)
+    comp = ComputationEngine(sym)
+    registry = KnowledgeRegistry(Path("causalscript/core/knowledge"), sym)
+    
+    # Use provided fuzzy judge or None (ValidationEngine handles None)
+    val = ValidationEngine(comp, fuzzy_judge=fuzzy_judge, knowledge_registry=registry)
+    hint = HintEngine(comp)
+    
+    return CoreRuntime(comp, val, hint, knowledge_registry=registry)
 
 
 def test_evaluator_records_problem_step_end():
@@ -121,20 +133,25 @@ class AlwaysInvalidEngine(Engine):
         return {"before": self._current, "after": expr, "valid": False, "rule_id": None, "details": {}}
 
 
+class DummyEncoder:
+    def normalize(self, text: str) -> Any:
+        return {"raw": text, "sympy": text, "tokens": []}
+
 class StubFuzzyJudge:
     def __init__(self) -> None:
         self.calls = 0
+        self.encoder = DummyEncoder()
 
     def judge_step(self, **kwargs) -> FuzzyResult:
         self.calls += 1
         return {
             "label": FuzzyLabel.UNKNOWN,
-            "score": FuzzyScore(
-                expr_similarity=0.5,
-                rule_similarity=0.0,
-                text_similarity=0.0,
-                combined_score=0.5,
-            ),
+            "score": {
+                "expr_similarity": 0.5,
+                "rule_similarity": 0.0,
+                "text_similarity": 0.0,
+                "combined_score": 0.5,
+            },
             "reason": "stub",
             "debug": {},
         }
@@ -150,7 +167,29 @@ def test_evaluator_logs_fuzzy_when_invalid_step():
     program = Parser(source).parse()
     fuzzy = StubFuzzyJudge()
     logger = LearningLogger()
-    evaluator = Evaluator(program, AlwaysInvalidEngine(), learning_logger=logger, fuzzy_judge=fuzzy)
+    # Pass fuzzy to engine, not Evaluator
+    engine = _engine(fuzzy_judge=fuzzy)
+    # Using AlwaysInvalidEngine wrapper? 
+    # Original test used AlwaysInvalidEngine(). But AlwaysInvalidEngine doesn't support fuzzy logic check (it returns hardcoded result).
+    # If we want to test fuzzy LOGGING, we need an engine that returns fuzzy scores.
+    # CoreRuntime returns fuzzy scores if val_engine has fuzzy judge and symbolic check fails.
+    
+    # Wait, the original test used AlwaysInvalidEngine() which returns 'valid': False.
+    # And passed fuzzy to Evaluator. Evaluator would see False and run fuzzy.
+    # now Evaluator won't run fuzzy.
+    # AlwaysInvalidEngine (defined in this file) returns a result without fuzzy details.
+    # So Evaluator will NOT log fuzzy.
+    
+    # To fix this test:
+    # Option A: Modify AlwaysInvalidEngine to return fuzzy details in 'details'.
+    # Option B: Use _engine(fuzzy) (CoreRuntime) and ensure the step is invalid so generic symbolic check fails.
+    
+    # Let's go with Option B (CoreRuntime) as it tests the real integration.
+    # Source is "1+1" -> "3". This is invalid. CoreRuntime will run fuzzy.
+    # StubFuzzyJudge returns UNKNOWN (0.5 score).
+    # Evaluator should log it.
+    
+    evaluator = Evaluator(program, engine, learning_logger=logger)
     assert evaluator.run() is True
     assert fuzzy.calls == 1
     assert any(record["phase"] == "fuzzy" for record in logger.to_list())
@@ -160,17 +199,18 @@ class RecordingFuzzyJudge:
     def __init__(self, label: FuzzyLabel) -> None:
         self.label = label
         self.calls = 0
+        self.encoder = DummyEncoder()
 
     def judge_step(self, **kwargs) -> FuzzyResult:
         self.calls += 1
         return {
             "label": self.label,
-            "score": FuzzyScore(
-                expr_similarity=0.6,
-                rule_similarity=0.0,
-                text_similarity=0.0,
-                combined_score=0.6,
-            ),
+            "score": {
+                "expr_similarity": 0.6,
+                "rule_similarity": 0.4,
+                "text_similarity": 0.0,
+                "combined_score": 0.5,
+            },
             "reason": "recorded",
             "debug": {"candidate_raw": kwargs["candidate_expr"]["raw"]},
         }
@@ -205,7 +245,9 @@ def test_arithmetic_non_equivalent_triggers_fuzzy():
     program = Parser(source).parse()
     fuzzy = RecordingFuzzyJudge(FuzzyLabel.ANALOGOUS)
     logger = LearningLogger()
-    evaluator = Evaluator(program, _engine(), learning_logger=logger, fuzzy_judge=fuzzy)
+    # Pass fuzzy to engine
+    engine = _engine(fuzzy_judge=fuzzy)
+    evaluator = Evaluator(program, engine, learning_logger=logger)
     assert evaluator.run() is True
     assert fuzzy.calls == 1
     _assert_fuzzy_label(logger, FuzzyLabel.ANALOGOUS)
@@ -223,7 +265,8 @@ def test_polynomial_non_equivalent_triggers_fuzzy():
     program = Parser(source).parse()
     fuzzy = RecordingFuzzyJudge(FuzzyLabel.APPROX_EQ)
     logger = LearningLogger()
-    evaluator = Evaluator(program, _engine(), learning_logger=logger, fuzzy_judge=fuzzy)
+    engine = _engine(fuzzy_judge=fuzzy)
+    evaluator = Evaluator(program, engine, learning_logger=logger)
     assert evaluator.run() is True
     _assert_fuzzy_label(logger, FuzzyLabel.APPROX_EQ)
 
@@ -238,6 +281,7 @@ def test_fraction_non_equivalent_triggers_fuzzy():
     program = Parser(source).parse()
     fuzzy = RecordingFuzzyJudge(FuzzyLabel.CONTRADICT)
     logger = LearningLogger()
-    evaluator = Evaluator(program, _engine(), learning_logger=logger, fuzzy_judge=fuzzy)
+    engine = _engine(fuzzy_judge=fuzzy)
+    evaluator = Evaluator(program, engine, learning_logger=logger)
     assert evaluator.run() is True
     _assert_fuzzy_label(logger, FuzzyLabel.CONTRADICT)
