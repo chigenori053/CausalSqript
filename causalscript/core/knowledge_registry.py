@@ -25,6 +25,7 @@ class KnowledgeNode:
     description: str
     priority: int = 50
     condition: str | None = None
+    concept: str | None = None
     extra: Dict[str, Any] | None = None
 
     def to_metadata(self) -> Dict[str, Any]:
@@ -37,6 +38,7 @@ class KnowledgeNode:
             "description": self.description,
             "priority": self.priority,
             "condition": self.condition,
+            "concept": self.concept,
         }
         if self.extra:
             data.update(self.extra)
@@ -105,7 +107,8 @@ class KnowledgeRegistry:
                         description=entry.get("description", ""),
                         priority=int(entry.get("priority", 50)),
                         condition=entry.get("condition"),
-                        extra={k: v for k, v in entry.items() if k not in {"id", "domain", "category", "pattern_before", "pattern_after", "description", "priority", "condition"}},
+                        concept=entry.get("concept"),
+                        extra={k: v for k, v in entry.items() if k not in {"id", "domain", "category", "pattern_before", "pattern_after", "description", "priority", "condition", "concept"}},
                     )
                     nodes.append(node)
             except Exception as e:
