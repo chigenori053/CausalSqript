@@ -12,14 +12,16 @@ CausalScript (Mathematical Thinking Language) is a DSL and tooling suite that ca
 | Layer | Key Modules | Purpose |
 |-------|-------------|---------|
 | DSL Core | `causalscript/core/parser.py`, `causalscript/core/ast_nodes.py` | Parse CausalScript syntax into AST structures. |
-| Execution | `causalscript/core/evaluator.py` | Replay reasoning steps and emit annotated outputs. |
-| Polynomial | `causalscript/core/polynomial.py`, `causalscript/core/polynomial_evaluator.py` | Evaluate multivariate polynomials via algebraic laws. |
-| Optimization | `causalscript/core/optimizer.py` | Inline assignments and fold constants to streamline traces. |
-| SymbolicAI | `causalscript/core/symbolic_engine.py` | Simplify expressions and generate explanations via SymPy/custom logic. |
+| Execution | `causalscript/core/evaluator.py`, `causalscript/core/core_runtime.py` | Orchestrate reasoning steps, validation, and extensions. |
+| SymbolicAI | `causalscript/core/symbolic_engine.py` | SymPy-based expression manipulation and equivalency checking. |
+| Knowledge | `causalscript/core/knowledge_registry.py` | Rule-based prediction, semantic linking, and concept mapping. |
+| Validation | `causalscript/core/validation_engine.py` | Integrated pipeline: Symbolic -> Fuzzy -> Decision. |
+| Decision | `causalscript/core/decision_theory.py` | Strategic judgment (Accept/Review/Reject) based on utility/regret. |
+| Heuristics | `causalscript/core/heuristics.py` | Detect common misconceptions (e.g., Freshman's Dream). |
+| Causal | `causalscript/core/causal/` | Diagnosis, graph construction, and fix suggestion. |
 | Interfaces | JupyterLab / Streamlit | Provide interactive teaching and demo surfaces. |
-| Testing | `pytest` suites under `tests/` | Guard parser/evaluator semantics. |
 
-Reference structure and full requirements live in `CausalScript_SPECIFICATION.md`.
+Reference structure and full requirements live in `docs/`.
 
 ## DSL Glimpse
 ```text
@@ -170,6 +172,7 @@ engine, report = run_causal_analysis(records, include_graph=True)
 report["explanations"]  # 各エラーの原因サマリ
 
 # 修正候補（例: step ノードID）
+# Heuristic Intensification により、"Freshman's Dream" などの誤用パターンは優先的に提案されます。
 for error_id in report["errors"]:
     fix_nodes = engine.suggest_fix_candidates(error_id)
     print(error_id, [node.node_id for node in fix_nodes])
@@ -177,6 +180,8 @@ for error_id in report["errors"]:
 # グラフの簡易表示
 print(graph_to_text(report["graph"]))
 ```
+
+`suggest_fix_candidates` は、単純な直前ステップだけでなく、**誤用パターン（例: $(a+b)^n \to a^n+b^n$）** を検出して根本原因を特定・優先順位付けします。
 
 `report["graph"]` にはノード・エッジ情報が入るため、テキスト可視化に加えて Graphviz/DOT ツールへもそのまま渡せます（`causalscript.core.causal.graph_utils.graph_to_dot` 参照）。
 
@@ -199,7 +204,7 @@ uv add sympy pyyaml pytest
 - Branching: `main` (stable), `dev`, `feature/*`
 - Commits: `feat(parser): implement expression parsing`
 - Tests: run `pytest` before PRs
-- Documentation: update both `README.md` and `MathLang_SPECIFICATION.md` when altering scope or design.
+- Documentation: update both `README.md` and specifications in `docs/` when altering scope or design.
 
 ### Release Checklist (Snapshot)
 - [ ] Parser/Evaluator tests green (`pytest`).
