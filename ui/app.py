@@ -45,44 +45,30 @@ if "logs" not in st.session_state:
 if "scenario_logs" not in st.session_state:
     st.session_state.scenario_logs = []
 
-# Initialize Engines (Cached)
+# Initialize Engines (Base/Stateless are Cached)
 @st.cache_resource
-def get_engines():
+def get_base_engines():
     sym_engine = SymbolicEngine()
     comp_engine = ComputationEngine(sym_engine)
     
-    # Initialize Fuzzy Judge
-    encoder = ExpressionEncoder()
-    metric = SimilarityMetric()
-    fuzzy_judge = FuzzyJudge(encoder, metric)
-    
-    # Initialize Knowledge Registry (moved up)
+    # Initialize Knowledge Registry
     # Point to the knowledge root directory
     knowledge_path = Path(os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "core", "knowledge")))
-    # Create directory if it doesn't exist to avoid errors
     knowledge_path.mkdir(parents=True, exist_ok=True)
     knowledge_registry = KnowledgeRegistry(knowledge_path, sym_engine)
-
-    # Initialize Validation Engine with Knowledge
-    val_engine = ValidationEngine(
-        comp_engine, 
-        fuzzy_judge=fuzzy_judge,
-        knowledge_registry=knowledge_registry
-    )
-    hint_engine = HintEngine(comp_engine)
+    
+    # Initialize Classifier and Formatter
     from causalscript.core.classifier import ExpressionClassifier
     classifier = ExpressionClassifier(sym_engine)
     formatter = LaTeXFormatter(sym_engine, classifier)
-    
-    # Knowledge Registry already initialized above
     
     # Inject common units into context
     for name, unit in get_common_units().items():
         comp_engine.bind(name, unit)
         
-    return comp_engine, val_engine, hint_engine, formatter, knowledge_registry
+    return comp_engine, knowledge_registry, formatter
 
-comp_engine, val_engine, hint_engine, formatter, knowledge_registry = get_engines()
+comp_engine, knowledge_registry, formatter = get_base_engines()
 
 # --- Helper Functions ---
 
@@ -188,9 +174,9 @@ def render_test_report(step_index, step_data):
 st.title("🧪 CausalScript Logic Tester")
 st.markdown("""
 This interface is designed to test:
-1. **Formula Recognition**: Problem -> Step -> End flow.
-2. **Step Evaluation**: Validity of each transformation.
-3. **Causal Inference**: Rule matching, Decision Theory application, and Adaptive Hinting.
+1.  **Formula Recognition**: Problem -> Step -> End flow.
+2.  **Step Evaluation**: Validity of each transformation.
+3.  **Causal Inference**: Rule matching, Decision Theory application, and Adaptive Hinting.
 """)
 
 st.divider()
@@ -200,14 +186,14 @@ with st.sidebar:
     st.header("⚙️ Configuration")
     
     st.subheader("Decision Theory")
-    strategy = st.selectbox(
+    strategy_name = st.selectbox(
         "Strategy", 
         ["balanced", "strict", "encouraging"],
         help="Defines the utility matrix for the Decision Engine."
     )
     
     st.subheader("Hint System")
-    persona = st.selectbox(
+    persona_name = st.selectbox(
         "Persona", 
         ["balanced", "sparta", "support"],
         help="Defines the personality and utility function for Hint Selection."
@@ -223,8 +209,6 @@ with st.sidebar:
         st.rerun()
 
 import graphviz
-
-# ... (existing imports)
 
 # --- Helper Functions ---
 
@@ -242,13 +226,6 @@ def generate_scenarios(variables):
             # We could vary them, but this is a start
         scenarios[scenario_name] = context
     return scenarios
-
-def render_test_report(step_index, step_data):
-    # ... (existing render_test_report code)
-    pass # I will not replace this function, just keeping the structure for context if needed, 
-         # but actually I need to replace the MAIN LOGIC below.
-
-# ... (existing code)
 
 # Main Input Area
 col_input, col_results = st.columns([1, 1])
@@ -274,7 +251,39 @@ end: x^2 - 4xy + 4y^2"""
             # Reset logs
             st.session_state.logs = []
             
-            # Initialize Runtime
+            # --- Dynamic Engine Initialization (Per Run) ---
+            from causalscript.core.decision_theory import DecisionEngine, DecisionConfig
+            
+            # 1. Configure Decision Theory & Fuzzy Judge
+            decision_config = DecisionConfig(strategy=strategy_name)
+            
+            encoder = ExpressionEncoder()
+            metric = SimilarityMetric()
+            
+            # Initialize FuzzyJudge with config (it creates its own DecisionEngine)
+            # Also pass symbolic_engine for calculus checks
+            fuzzy_judge = FuzzyJudge(
+                encoder, 
+                metric, 
+                decision_config=decision_config,
+                symbolic_engine=comp_engine.symbolic_engine
+            )
+            
+            # Reuse the engine created by FuzzyJudge
+            decision_engine = fuzzy_judge.decision_engine
+            
+            # 3. Configure Validation Engine
+            val_engine = ValidationEngine(
+                comp_engine, 
+                fuzzy_judge=fuzzy_judge,
+                decision_engine=decision_engine,
+                knowledge_registry=knowledge_registry
+            )
+            
+            # 4. Configure Hint Engine
+            hint_engine = HintEngine(comp_engine)
+            
+            # 5. Initialize Runtime
             logger = LearningLogger()
             runtime = CoreRuntime(
                 comp_engine, 
@@ -282,8 +291,8 @@ end: x^2 - 4xy + 4y^2"""
                 hint_engine, 
                 learning_logger=logger,
                 knowledge_registry=knowledge_registry,
-                decision_config=DecisionConfig(strategy=strategy),
-                hint_persona=persona
+                decision_config=decision_config,
+                hint_persona=persona_name
             )
             
             try:

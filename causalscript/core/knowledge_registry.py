@@ -401,3 +401,84 @@ class KnowledgeRegistry:
             check_node(node)
             
         return list(dict.fromkeys(suggestions))  # Remove duplicates preserving order
+
+    def match_rules(self, before: str, category: str | None = None) -> List[Tuple[KnowledgeNode, str]]:
+        """
+        Finds all rules that match the 'before' expression and returns the rule + resulting expression.
+        """
+        matches: List[Tuple[KnowledgeNode, str]] = []
+        is_before_numeric = self.engine.is_numeric(before)
+        allowed_domains = self._resolve_domains(category)
+        
+        seen_rules = set()
+
+        def check_node(node: KnowledgeNode):
+            if node.id in seen_rules:
+                return
+            seen_rules.add(node.id)
+
+            if allowed_domains and node.domain not in allowed_domains:
+                return
+            
+            # Domain and Operator checks (fast)
+            if is_before_numeric and node.domain == "algebra":
+                return
+            if "/" in node.pattern_before and "/" not in before:
+                return
+            
+            # Structural Match (fast)
+            bind_before = self.engine.match_structure(before, node.pattern_before)
+            if bind_before is None:
+                return
+                
+            if node.condition:
+                if not self._check_condition(node.condition, bind_before):
+                    return
+
+            try:
+                # Generate 'after' candidate
+                str_bindings = {k: str(v) for k, v in bind_before.items()}
+                candidate = self.engine.substitute(node.pattern_after, str_bindings)
+                matches.append((node, candidate))
+            except Exception:
+                pass
+
+        # Check Maps and Fallbacks
+        for rule_map in self.maps:
+            for rule_id in rule_map.rules:
+                node = self.rules_by_id.get(rule_id)
+                if node:
+                    check_node(node)
+                    
+        for node in self.nodes:
+            check_node(node)
+            
+        return matches
+
+    def apply_rule(self, expr: str, rule_id: str) -> Optional[str]:
+        """
+        Applies a specific rule to the expression.
+        Returns the transformed expression or None if the rule cannot be applied.
+        """
+        node = self.rules_by_id.get(rule_id)
+        if not node:
+            return None
+            
+        try:
+            # 1. Match Structure
+            bind_before = self.engine.match_structure(expr, node.pattern_before)
+            if bind_before is None:
+                return None
+                
+            # 2. Check Condition
+            if node.condition:
+                if not self._check_condition(node.condition, bind_before):
+                    return None
+            
+            # 3. Substitute
+            str_bindings = {k: str(v) for k, v in bind_before.items()}
+            candidate = self.engine.substitute(node.pattern_after, str_bindings)
+            return candidate
+        except Exception:
+            return None
+

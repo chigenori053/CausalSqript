@@ -605,7 +605,7 @@ class SymbolicEngine:
             from sympy import Wild
             from sympy.parsing.sympy_parser import parse_expr
             
-            local_dict = {"e": _sympy.E, "pi": _sympy.pi, "integrate": _sympy.Integral, "Integral": _sympy.Integral, "Subs": _sympy.Subs}
+            local_dict = {"e": _sympy.E, "pi": _sympy.pi, "integrate": _sympy.Integral, "Integral": _sympy.Integral, "Subs": _sympy.Subs, "Eq": _sympy.Eq}
             
             # 1. Parse the concrete expression
             # Use evaluate=True to allow basic simplification like (x-y)*(x-y) -> (x-y)**2
