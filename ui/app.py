@@ -62,6 +62,15 @@ def get_base_engines():
     classifier = ExpressionClassifier(sym_engine)
     formatter = LaTeXFormatter(sym_engine, classifier)
     
+    # Initialize Reasoning Agent
+    from causalscript.core.reasoning.agent import ReasoningAgent
+    # We need a dummy runtime or similar, but ReasoningAgent takes runtime.
+    # Actually ReasoningAgent needs runtime to access engines.
+    # Let's create it inside the main execution loop where runtime exists, 
+    # OR create a minimal runtime structure here if needed. 
+    # But wait, ReasoningAgent takes `runtime`.
+    # Let's just return the class or perform init later.
+    
     # Inject common units into context
     for name, unit in get_common_units().items():
         comp_engine.bind(name, unit)
@@ -122,6 +131,12 @@ def render_test_report(step_index, step_data):
             if 'rule' in analysis:
                 rule = analysis['rule']
                 st.success(f"**Rule Match**: `{rule.get('id', 'N/A')}`")
+                
+                # Concept & Description
+                concept = rule.get('concept')
+                if concept:
+                     st.markdown(f"**Concept**: `{concept}`")
+                     
                 st.caption(rule.get('description', ''))
             else:
                 st.markdown("Rule Match: *None*")
@@ -207,6 +222,49 @@ with st.sidebar:
         st.session_state.history = []
         st.session_state.logs = []
         st.rerun()
+
+    st.header("🤖 Reasoning Agent")
+    with st.expander("Ask for Next Step"):
+        agent_input = st.text_input("Expression", value="2*x + 4 = 10")
+        if st.button("Think"):
+            try:
+                # instantiate runtime for agent
+                # We reuse cached engines
+                comp, registry, _ = get_base_engines()
+                
+                # Minimal runtime for agent
+                # We need validation/hint engines even if unused by agent directly
+                # (Agent takes runtime, which expects them)
+                from causalscript.core.validation_engine import ValidationEngine as VE
+                from causalscript.core.hint_engine import HintEngine as HE
+                
+                ve = VE(comp) 
+                he = HE(comp)
+                
+                # We need a dummy logger
+                from causalscript.core.learning_logger import LearningLogger
+                
+                # Lazy import runtime to avoid circular issues if any? 
+                # (Already imported at top)
+                
+                agent_runtime = CoreRuntime(
+                    comp, ve, he, 
+                    knowledge_registry=registry,
+                    learning_logger=LearningLogger()
+                )
+                
+                agent = ReasoningAgent(agent_runtime)
+                hypothesis = agent.think(agent_input)
+                
+                if hypothesis:
+                    st.success(f"**Proposed Step**: `{hypothesis.next_expr}`")
+                    st.info(f"Why: {hypothesis.explanation}")
+                    st.caption(f"Rule: {hypothesis.metadata.get('rule_id')} (Score: {hypothesis.score})")
+                else:
+                    st.warning("No confident step found.")
+                    
+            except Exception as e:
+                st.error(f"Agent Error: {e}")
 
 import graphviz
 

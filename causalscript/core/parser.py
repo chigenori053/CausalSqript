@@ -332,7 +332,16 @@ class Parser:
         while index < len(self._lines):
             raw = self._lines[index].content
             stripped = raw.strip()
-            if not raw.startswith(" ") and stripped and not stripped.startswith("#"):
+            
+            # Special case: Vertical addition decorations allowed at start of line
+            # e.g. "+) ...", "-) ...", "---"
+            is_decoration = (
+                stripped.startswith("+)") 
+                or stripped.startswith("-)") 
+                or set(stripped) <= {"-", " ", "="} and len(stripped) > 2 # Separator line
+            )
+
+            if not raw.startswith(" ") and stripped and not stripped.startswith("#") and not is_decoration:
                 break
             if not raw.strip() and not raw.startswith(" "):
                 break
@@ -502,10 +511,20 @@ class Parser:
         raw_lines = []
         for line in block_lines:
             stripped = line.strip()
-            if stripped and not stripped.startswith("#"):
-                norm = self._normalize_expr(stripped)
-                exprs.append(self._to_equation(norm))
-                raw_lines.append(stripped)
+            if not stripped or stripped.startswith("#"):
+                continue
+
+            # Strip decorations
+            clean_line = stripped
+            if stripped.startswith("+)") or stripped.startswith("-)"):
+                clean_line = stripped[2:].strip()
+            elif set(stripped) <= {"-", " ", "="} and len(stripped) > 2:
+                # Separator line, ignore
+                continue
+                
+            norm = self._normalize_expr(clean_line)
+            exprs.append(self._to_equation(norm))
+            raw_lines.append(stripped)
         
         if not exprs:
             raise SyntaxError(f"Step block is empty on line {number}.")

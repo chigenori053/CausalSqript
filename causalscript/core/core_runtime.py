@@ -428,27 +428,49 @@ class CoreRuntime(Engine):
                  is_valid = True
                  status = "correct"
         
+        
         # Scenario validation (Keep in CoreRuntime for now)
         scenario_results = {}
         is_valid_scenarios = True
+        
+        # Initialize partial flags early
+        is_partial = False
+        is_partial_attempt = False
+
         if self._scenarios:
             scenario_results = self.computation_engine.check_equivalence_in_scenarios(
                 before, after, self._scenarios
             )
             is_valid_scenarios = all(scenario_results.values())
             
-        if not is_valid and self._scenarios:
-             # Scenarios can override verification failure? 
-             # Or scenarios are stricter?
-             # Old logic: if not valid_symbolic then check scenarios.
-             # If scenarios PASS, then valid.
-             if is_valid_scenarios:
-                 is_valid = True
-                 status = "correct" # Override status
+            if not is_valid and self._scenarios:
+                 if is_valid_scenarios:
+                     is_valid = True
+                     status = "correct" # Override status
+
+        # Implication Logic (System -> Solution)
+        # If still invalid, check if 'after' is implied by 'before'
+        if not is_valid:
+            try:
+                # Construct a target string that preserves Equation structure 
+                # (instead of 'after' which might be normalized to implicit subtraction)
+                implication_target = after
+                if equation and lhs is not None and rhs is not None:
+                     # Reconstruct Eq for Symbolic Engine
+                     implication_target = f"Eq({lhs}, {rhs})"
+
+                if self.computation_engine.symbolic_engine.is_implied_by_system(implication_target, before):
+                    is_valid = True
+                    status = "partial" # Or "implication"
+                    # We accept it, but we should treat it as partial because information might be lost (e.g. system -> single var)
+                    is_partial = True 
+                    # If we treat it as partial, current_expr won't be updated, preserving the system context.
+                    # This is likely what we want for "x=4" derived from a system.
+                    result["details"]["note"] = "Step is implied by the previous system."
+            except Exception:
+                pass
 
         # Partial Calculation Logic (Override invalid)
-        is_partial = False
-        is_partial_attempt = False
         if not is_valid and equation:
             # Check if this is a valid partial calculation
             lhs, rhs = equation

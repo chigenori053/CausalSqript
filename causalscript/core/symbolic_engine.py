@@ -799,6 +799,81 @@ class SymbolicEngine:
         integral_expr must be a Definite Integral string, e.g., "Integral(f(x), (x, a, b))".
         """
         if self._fallback is not None:
+             return False
+
+        try:
+             # Just checking if d(func_expr)/dx == integrand
+             # But we need parsing.
+             # This is a stub or simple implementation.
+             pass
+        except Exception:
+             pass
+        return False
+        
+    def is_implied_by_system(self, target: str, source: str) -> bool:
+        """
+        Check if the 'target' equation/expression is logically implied by the 'source'.
+        Useful for checking if a solution (e.g. x=4) is valid given a system (e.g. {3x+2y=14, x-2y=2}).
+        
+        Args:
+            target: The derived step (e.g. "x=4")
+            source: The original system/expression (e.g. "System(Eq(...), Eq(...))")
+            
+        Returns:
+            True if target is a necessary consequence of source.
+        """
+        if self._fallback is not None:
+            return False
+            
+        try:
+            target_eqn = self.to_internal(target)
+            source_sys = self.to_internal(source)
+            
+            # If source isn't a collection, wrap it or treat as single
+            if not isinstance(source_sys, (_sympy.FiniteSet, list, tuple, set)):
+                 source_sys = [source_sys]
+            
+            # Solve the source system
+            # solutions could be a list of dicts, or a single dict, or a FinteSet
+            solutions = _sympy.solve(source_sys, dict=True)
+            
+            if not solutions:
+                # No solution to source -> Ex Falso Quodlibet? 
+                # Or maybe it means impossible system.
+                # If system is impossible, then anything is implied? 
+                # But practically, user probably made a mistake earlier if system has no solution.
+                return False
+
+            # Check if Valid for ALL solutions
+            # e.g. x^2=4 -> x=2 OR x=-2. 
+            # If user writes x=2, it's not strictly implied (could be -2).
+            # But usually we want "is this consistent with at least one solution?" for partial checking?
+            # NO, "implied by" usually means "for all models of source, target is true".
+            # But in step-by-step solving, we often narrow down.
+            # If solutions is [{'x':4, 'y':1}], and target is x=4, then yes.
+            
+            for sol in solutions:
+                # Check if target holds for this solution
+                # target might be Eq(x, 4)
+                if isinstance(target_eqn, _sympy.Eq):
+                    lhs = target_eqn.lhs.subs(sol)
+                    rhs = target_eqn.rhs.subs(sol)
+                    if not _sympy.simplify(lhs - rhs) == 0:
+                        return False
+                else:
+                    # If target is not an equation (e.g. just "3*x"), it cannot be "implied" by a system 
+                    # in the sense of a truth value. 
+                    # Unless it's a boolean expression?
+                    # For safety, if it's not an Eq, we should probably return False,
+                    # as we are looking for "System -> Step (Equation)" implication.
+                    return False
+                    
+            return True
+            
+        except Exception as e:
+            # print(f"DEBUG: is_implied_by_system failed: {e}")
+            return False
+        if self._fallback is not None:
             return False
 
         try:
