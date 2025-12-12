@@ -487,14 +487,65 @@ class Parser:
             return f"Eq({lhs.strip()}, {rhs.strip()})"
         return expr
 
+    def _join_multiline_statements(self, lines: List[str]) -> List[str]:
+        joined = []
+        current_stmt = []
+        stack = [] # chars: '[', '(', '{'
+        
+        for line in lines:
+            stripped = line.strip()
+            if not stripped or stripped.startswith("#"):
+                 continue
+            
+            # Determine join separator if continuing
+            if stack:
+                # We are continuing a statement
+                if stack[-1] == '[':
+                    current_stmt.append(";")
+                else:
+                    current_stmt.append(" ") 
+                current_stmt.append(stripped)
+            else:
+                # New statement
+                current_stmt = [stripped]
+            
+            # Update stack
+            for char in stripped:
+                if char in '[({':
+                    stack.append(char)
+                elif char in '])}':
+                    if stack:
+                        # Simple matching, ignore mismatches or assume correct
+                        # Ideally we check pair match
+                        if (char == ']' and stack[-1] == '[') or \
+                           (char == ')' and stack[-1] == '(') or \
+                           (char == '}' and stack[-1] == '{'):
+                            stack.pop()
+                    else:
+                        # Negative depth (e.g. closing paren from previous block? shouldn't happen here)
+                        pass
+            
+            if not stack:
+                # Statement complete
+                joined.append("".join(current_stmt))
+                current_stmt = []
+        
+        if current_stmt:
+            # Append incomplete statement (syntax error likely, but preserve)
+            joined.append("".join(current_stmt))
+            
+        return joined
+
     def _parse_problem_block(self, block_lines: List[str], number: int) -> ast.ProblemNode:
         # Join lines into a System(...) expression
+        # Use multiline joining to support matrices [ ... \n ... ]
+        joined_lines = self._join_multiline_statements(block_lines)
+        
         exprs = []
-        for line in block_lines:
-            stripped = line.strip()
-            if stripped and not stripped.startswith("#"):
-                norm = self._normalize_expr(stripped)
-                exprs.append(self._to_equation(norm))
+        for line in joined_lines:
+            # line is already stripped/joined
+            norm = self._normalize_expr(line)
+            exprs.append(self._to_equation(norm))
         
         if not exprs:
             raise SyntaxError(f"Problem block is empty on line {number}.")
@@ -507,13 +558,19 @@ class Parser:
         return ast.ProblemNode(expr=system_expr, line=number)
 
     def _parse_step_multiline(self, block_lines: List[str], number: int) -> ast.StepNode:
-        exprs = []
-        raw_lines = []
+        # Pre-process block lines to strip decorators first? 
+        # Decorators `+)` are line-based. _join_multiline_statements handles stripped lines.
+        # But we need to strip decorations BEFORE joining? 
+        # Yes.
+        
+        clean_lines = []
+        raw_lines = [] # Maintain checks
+        
         for line in block_lines:
             stripped = line.strip()
             if not stripped or stripped.startswith("#"):
                 continue
-
+            
             # Strip decorations
             clean_line = stripped
             if stripped.startswith("+)") or stripped.startswith("-)"):
@@ -521,16 +578,23 @@ class Parser:
             elif set(stripped) <= {"-", " ", "="} and len(stripped) > 2:
                 # Separator line, ignore
                 continue
-                
-            norm = self._normalize_expr(clean_line)
-            exprs.append(self._to_equation(norm))
+            
+            clean_lines.append(clean_line)
             raw_lines.append(stripped)
+            
+        # Now join statements
+        joined_lines = self._join_multiline_statements(clean_lines)
+
+        exprs = []
+        for line in joined_lines:
+            norm = self._normalize_expr(line)
+            exprs.append(self._to_equation(norm))
         
         if not exprs:
             raise SyntaxError(f"Step block is empty on line {number}.")
             
         if len(exprs) == 1:
-            return ast.StepNode(expr=exprs[0], raw_expr=raw_lines[0], line=number)
+            return ast.StepNode(expr=exprs[0], raw_expr=raw_lines[0] if raw_lines else "", line=number)
             
         system_expr = f"System({', '.join(exprs)})"
         raw_expr = "\n".join(raw_lines)

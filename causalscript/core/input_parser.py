@@ -27,6 +27,7 @@ class CausalScriptInputParser:
         "integrate",
         "diff",
         "Subs",
+        "Matrix",
     }
     _KNOWN_CONSTANTS = {"pi", "e"}
     _UNARY_PRECEDERS = {"(", "+", "-", "*", "/", "**"}
@@ -41,6 +42,7 @@ class CausalScriptInputParser:
         tokens = CausalScriptInputParser.normalize_unicode(tokens)
         tokens = CausalScriptInputParser.normalize_power(tokens)
         tokens = CausalScriptInputParser.expand_mixed_numbers(tokens)
+        tokens = CausalScriptInputParser.normalize_matrices(tokens)
         tokens = CausalScriptInputParser.normalize_brackets(tokens)
         tokens = CausalScriptInputParser.normalize_derivatives(tokens)
         tokens = CausalScriptInputParser.normalize_integrals(tokens)
@@ -222,6 +224,96 @@ class CausalScriptInputParser:
                             break
                 i += 1
             
+            if not changed:
+                break
+            if not changed:
+                break
+        return tokens
+
+    @staticmethod
+    def normalize_matrices(tokens: List[str]) -> List[str]:
+        """
+        Convert matrix syntax [a, b; c, d] to Matrix([[a, b], [c, d]]).
+        Supports nested lists if commas are used, but specifically looks for semicolons 
+        as row separators to identify implicit matrices.
+        """
+        while True:
+            changed = False
+            i = 0
+            while i < len(tokens):
+                if tokens[i] == '[':
+                    # Find matching closing bracket
+                    depth = 1
+                    j = i + 1
+                    has_semicolon = False
+                    while j < len(tokens):
+                        if tokens[j] == '[':
+                            depth += 1
+                        elif tokens[j] == ']':
+                            depth -= 1
+                            if depth == 0:
+                                break
+                        elif tokens[j] == ';' and depth == 1:
+                            has_semicolon = True
+                        j += 1
+                    
+                    if j < len(tokens) and has_semicolon:
+                        # Process matrix content
+                        content = tokens[i+1 : j]
+                        rows = []
+                        current_row = []
+                        
+                        # Split content by ';' at depth 0 (relative to content)
+                        # content tokens don't include outer []
+                        
+                        # Helper for simple splitting
+                        k = 0
+                        row_start = 0
+                        local_depth = 0
+                        while k < len(content):
+                            if content[k] == '[' or content[k] == '(':
+                                local_depth += 1
+                            elif content[k] == ']' or content[k] == ')':
+                                local_depth -= 1
+                            elif content[k] == ';' and local_depth == 0:
+                                # Row terminator
+                                row_tokens = content[row_start:k]
+                                if any(t.strip() for t in row_tokens):
+                                     rows.append(row_tokens)
+                                row_start = k + 1
+                            k += 1
+                        # Add last row
+                        last_row = content[row_start:]
+                        if any(t.strip() for t in last_row):
+                             rows.append(last_row)
+                        
+                        # Construct Matrix string replacement
+                        # Matrix([[r1], [r2]])
+                        
+                        # We need to preserve comma separation within rows.
+                        # Assuming rows are "1, 0, 1".
+                        # If a row is "1 0 1" (space separated), we might need to verify comma insertion?
+                        # insert_implicit_multiplication runs AFTER this? 
+                        # Order in normalize: matrices -> implicit mult.
+                        # So "1 2" might look like implicit mult unless we handle it?
+                        # But standard list syntax is comma separated. 
+                        # We assume the user provides commas or we rely on some other normalization?
+                        # The user example has commas: "1, 0, 1".
+                        
+                        repl = ['Matrix', '(', '[']
+                        for idx, row in enumerate(rows):
+                            if idx > 0:
+                                repl.append(',')
+                            repl.append('[')
+                            repl.extend(row)
+                            repl.append(']')
+                        repl.append(']')
+                        repl.append(')')
+                        
+                        tokens[i : j+1] = repl
+                        changed = True
+                        break
+                i += 1
             if not changed:
                 break
         return tokens
@@ -411,7 +503,7 @@ class CausalScriptInputParser:
                     tokens.append("*")
                     index += 1
                 continue
-            if char in "+-/^(),'[]":
+            if char in "+-/^(),'[];":
                 tokens.append(char)
                 index += 1
                 continue

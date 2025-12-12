@@ -226,7 +226,8 @@ class SymbolicEngine:
                 "Integral": _sympy.Integral, 
                 "Subs": _sympy.Subs,
                 "System": _sympy.FiniteSet, # Map System to FiniteSet
-                "Eq": _sympy.Eq
+                "Eq": _sympy.Eq,
+                "Matrix": _sympy.Matrix
             }
             # Normalize power symbol
             expr = expr.replace("^", "**")
