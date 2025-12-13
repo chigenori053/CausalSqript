@@ -135,6 +135,7 @@ class ProgramNode(Node):
 class ProblemNode(Node):
     expr: str = ""
     name: str | None = None
+    mode: str | None = None  # arithmetic, algebra, calculus, etc.
     ast: object | None = None
 
 

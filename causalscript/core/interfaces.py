@@ -29,3 +29,8 @@ class BaseEngine(ABC):
         Evaluate the AST node within the given context.
         """
         pass
+
+class BaseModule(ABC):
+    """Abstract base class for a domain module."""
+    parser: BaseParser
+    engine: BaseEngine

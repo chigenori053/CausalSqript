@@ -223,13 +223,22 @@ class Parser:
         if content.strip().lower().startswith("problem:"):
             content = content.strip()[8:].strip()
             
-        # Check for "Name = Expression" syntax (top-level '=' only)
+        # Check for "Name = Expression" or "Name(Mode) = Expression"
         name = None
+        mode = None
         assignment = self._split_top_level_assignment(content)
         if assignment:
-            possible_name, rhs = assignment
-            if re.match(r"^[A-Za-z_][A-Za-z0-9_]*$", possible_name):
-                name = possible_name
+            possible_lhs, rhs = assignment
+            possible_lhs = possible_lhs.strip()
+            
+            # Check for Name(Mode) pattern
+            mode_match = re.match(r"^([A-Za-z_][A-Za-z0-9_]*)\s*\(\s*([A-Za-z_][A-Za-z0-9_]*)\s*\)$", possible_lhs)
+            if mode_match:
+                name = mode_match.group(1)
+                mode = mode_match.group(2)
+                content = rhs
+            elif re.match(r"^[A-Za-z_][A-Za-z0-9_]*$", possible_lhs):
+                name = possible_lhs
                 content = rhs
 
         expr = self._normalize_expr(content)
@@ -239,7 +248,7 @@ class Parser:
              
         if not expr:
             raise SyntaxError(f"Problem expression required on line {number}.")
-        return ast.ProblemNode(expr=expr, name=name, line=number)
+        return ast.ProblemNode(expr=expr, name=name, mode=mode, line=number)
 
     def _parse_sub_problem(self, content: str, number: int) -> ast.SubProblemNode:
         raw_expr = content.strip()
