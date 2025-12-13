@@ -298,18 +298,24 @@ class LinearAlgebraStrategy(SymbolicStrategy):
                                     step_equations.append(arg)
                 
                 if not step_equations:
-                    return False
+                    # If no explicit Eq found, treat the whole expression as LHS - RHS = 0
+                    # This handles CoreRuntime's normalization of "x=4" -> "(x) - (4)"
+                    step_equations.append(step_internal)
                 
                 for eq_node in step_equations:
-                    # Handle both Expression(body=Call) and Call
+                    # Handle both Expression(body=..) and raw node
+                    call_node = eq_node
                     if isinstance(eq_node, py_ast.Expression):
                         call_node = eq_node.body
+
+                    if isinstance(call_node, py_ast.Call) and isinstance(call_node.func, py_ast.Name) and call_node.func.id == "Eq":
+                        lhs_str = py_ast.unparse(call_node.args[0])
+                        rhs_str = py_ast.unparse(call_node.args[1])
+                        eq_expr = f"{lhs_str} - ({rhs_str})"
                     else:
-                        call_node = eq_node
-                        
-                    lhs_str = py_ast.unparse(call_node.args[0])
-                    rhs_str = py_ast.unparse(call_node.args[1])
-                    eq_expr = f"{lhs_str} - ({rhs_str})"
+                        # Assume it's already an expression equating to 0
+                        eq_expr = py_ast.unparse(call_node)
+
                     poly = _Polynomial.from_expr(eq_expr)
                     
                     for sol in solutions:

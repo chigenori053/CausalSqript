@@ -1,5 +1,6 @@
 
 import pytest
+pytest.importorskip("sympy")
 from causalscript.core.causal import CausalEngine
 from causalscript.core.causal.causal_types import CausalNodeType
 

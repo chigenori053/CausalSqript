@@ -1,5 +1,6 @@
 
 import pytest
+pytest.importorskip("sympy")
 from causalscript.core.heuristics import MisusePatternDetector
 from causalscript.core.symbolic_engine import SymbolicEngine
 

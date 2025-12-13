@@ -402,15 +402,25 @@ class Parser:
         return ast.PrepareNode(kind="expr", expr=self._normalize_statement(content), line=number)
 
     def _parse_prepare_block(self, block_lines: List[str], number: int) -> ast.PrepareNode:
+        # Join lines first to handle multi-line lists/matrices
+        joined_lines = self._join_multiline_statements(block_lines)
         statements: List[str] = []
-        for raw in block_lines:
+        for raw in joined_lines:
             stripped = raw.strip()
             if not stripped or stripped.startswith("#"):
                 continue
+            # Handle bullet points which might be at start of the joined line
             if stripped.startswith("-"):
                 normalized = self._normalize_statement(stripped[1:].strip())
                 if normalized:
                     statements.append(normalized)
+            else:
+                # Also support non-bulleted lines if they are assignments?
+                # The spec usually implies lists in prepare are bulleted, but permissive parsing is good.
+                normalized = self._normalize_statement(stripped)
+                if normalized:
+                    statements.append(normalized)
+                    
         if statements:
             return ast.PrepareNode(kind="list", statements=statements, line=number)
         return ast.PrepareNode(kind="empty", line=number)
@@ -575,6 +585,12 @@ class Parser:
             clean_line = stripped
             if stripped.startswith("+)") or stripped.startswith("-)"):
                 clean_line = stripped[2:].strip()
+            # NEW: Strip list bullets "- " used in steps
+            elif stripped.startswith("- "):
+                 clean_line = stripped[2:].strip()
+            # Also handle just "-" if followed by immediate content? "-A" might be minus A.
+            # But "- A" is definitely a bullet in this context usually.
+            
             elif set(stripped) <= {"-", " ", "="} and len(stripped) > 2:
                 # Separator line, ignore
                 continue

@@ -1,5 +1,6 @@
-
 import unittest
+import pytest
+pytest.importorskip("sympy")
 from pathlib import Path
 from causalscript.core.knowledge_registry import KnowledgeRegistry
 from causalscript.core.symbolic_engine import SymbolicEngine

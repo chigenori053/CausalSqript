@@ -1,5 +1,7 @@
 
 import unittest
+import pytest
+pytest.importorskip("sympy")
 from pathlib import Path
 from unittest.mock import MagicMock
 

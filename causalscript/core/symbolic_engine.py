@@ -9,8 +9,10 @@ from typing import Any, Dict, Sequence, Set
 
 from .errors import InvalidExprError, EvaluationError
 from .simple_algebra import SimpleAlgebra, _Polynomial
+from .linear_algebra_engine import LinearAlgebraEngine
 
 import math
+import statistics
 
 try:  # pragma: no cover - SymPy is an optional dependency at import time.
     import sympy as _sympy
@@ -26,6 +28,20 @@ _SAMPLE_ASSIGNMENTS: Sequence[Dict[str, int]] = (
     {},
 )
 
+def _symbolic_mean(data):
+    return sum(data) / len(data)
+
+def _symbolic_median(data):
+    sorted_data = sorted(data)
+    n = len(data)
+    if n % 2 == 1:
+        return sorted_data[n // 2]
+    else:
+        return (sorted_data[n // 2 - 1] + sorted_data[n // 2]) / 2
+
+def _symbolic_mode(data):
+    # simplistic mode for verification
+    return max(set(data), key=data.count)
 
 class _FallbackEvaluator:
     """Very small arithmetic evaluator used when SymPy is unavailable."""
@@ -42,7 +58,16 @@ class _FallbackEvaluator:
         tree = self.parse(expr)
         return self._eval_node(tree.body, values)
 
+    def _is_matrix(self, val: Any) -> bool:
+        return isinstance(val, list) and len(val) > 0 and isinstance(val[0], list)
+
+    def _is_vector(self, val: Any) -> bool:
+        return isinstance(val, list) and (not val or not isinstance(val[0], list))
+
     def _eval_node(self, node: py_ast.AST, values: Dict[str, Any]) -> Any:
+        if isinstance(node, py_ast.List):
+             return [self._eval_node(elt, values) for elt in node.elts]
+
         if isinstance(node, py_ast.Constant):
             return Fraction(node.value) if isinstance(node.value, int) else node.value
         if isinstance(node, py_ast.Name):
@@ -70,10 +95,50 @@ class _FallbackEvaluator:
             left = self._eval_node(node.left, values)
             right = self._eval_node(node.right, values)
             if isinstance(node.op, py_ast.Add):
+                if isinstance(left, list) and isinstance(right, list):
+                     la = LinearAlgebraEngine()
+                     if self._is_matrix(left): return la.matrix_add(left, right)
+                     return la.vector_add(left, right)
                 return left + right
             if isinstance(node.op, py_ast.Sub):
+                if isinstance(left, list) and isinstance(right, list):
+                     la = LinearAlgebraEngine()
+                     # Reuse matrix_add logic for sub? LinearAlgebraEngine has vector_subtract but maybe not matrix_subtract?
+                     # It has vector_subtract. Let's check matrix_subtract.
+                     # It does not have matrix_subtract explicitly in the file view I saw?
+                     # Checked file ID 9: matrix_add exists. matrix_subtract DOES NOT exist.
+                     # Implementation plan didn't catch this. I should implement matrix subtraction using scalar mult -1 + add, or update LA engine.
+                     # Updating LA engine is better, but for now I can do element-wise sub here or use scalar mul.
+                     if self._is_matrix(left):
+                         neg_right = la.scalar_multiply(-1, [val for row in right for val in row]) # Flatten/Unflatten tricky
+                         # Easier: manual loop for fallback
+                         return [[a - b for a, b in zip(r1, r2)] for r1, r2 in zip(left, right)]
+                     return la.vector_subtract(left, right)
                 return left - right
             if isinstance(node.op, py_ast.Mult):
+                if isinstance(left, list) and isinstance(right, list):
+                     la = LinearAlgebraEngine()
+                     if self._is_matrix(left) and self._is_matrix(right):
+                         return la.matrix_multiply(left, right)
+                     # Vector dot product? Or elementwise?
+                     # Standard math: dot product for vectors often uses dot() function, * might be ambiguous.
+                     # But typically v * w is not valid unless definition exists. 
+                     # Let's assume dot product for vectors if 1D? Or error?
+                     # The user prompt A * B implies matrix multiplication.
+                     pass 
+                
+                # Scalar multiplication
+                if isinstance(left, (int, float, Fraction)) and isinstance(right, list):
+                     la = LinearAlgebraEngine()
+                     if self._is_matrix(right):
+                         return [[float(left) * val for val in row] for row in right]
+                     return la.scalar_multiply(float(left), right)
+                if isinstance(right, (int, float, Fraction)) and isinstance(left, list):
+                     la = LinearAlgebraEngine()
+                     if self._is_matrix(left):
+                         return [[val * float(right) for val in row] for row in left]
+                     return la.scalar_multiply(float(right), left)
+
                 return left * right
             if isinstance(node.op, py_ast.Div):
                 if right == 0:
@@ -227,7 +292,10 @@ class SymbolicEngine:
                 "Subs": _sympy.Subs,
                 "System": _sympy.FiniteSet, # Map System to FiniteSet
                 "Eq": _sympy.Eq,
-                "Matrix": _sympy.Matrix
+                "Matrix": _sympy.Matrix,
+                "mean": _symbolic_mean,
+                "median": _symbolic_median,
+                "mode": _symbolic_mode
             }
             # Normalize power symbol
             expr = expr.replace("^", "**")
@@ -823,9 +891,21 @@ class SymbolicEngine:
         Returns:
             True if target is a necessary consequence of source.
         """
+        # Delegate to LinearAlgebraStrategy if available
+        # We try Linear Algebra strategy specifically as it handles systems.
+        # Ideally we should detect category, but Implication is primarily a system property.
+        
+        la_strategy = self.strategies.get(MathCategory.LINEAR_ALGEBRA)
+        if la_strategy:
+             # This works for both SymPy and Fallback modes (if strategy supports fallback)
+             result = la_strategy.check_implication(source, target, self)
+             if result is not None:
+                 return result
+        
+        # If strategy returns None or not found, try generic logic (if SymPy available)
         if self._fallback is not None:
             return False
-            
+
         try:
             target_eqn = self.to_internal(target)
             source_sys = self.to_internal(source)
@@ -835,44 +915,22 @@ class SymbolicEngine:
                  source_sys = [source_sys]
             
             # Solve the source system
-            # solutions could be a list of dicts, or a single dict, or a FinteSet
             solutions = _sympy.solve(source_sys, dict=True)
             
             if not solutions:
-                # No solution to source -> Ex Falso Quodlibet? 
-                # Or maybe it means impossible system.
-                # If system is impossible, then anything is implied? 
-                # But practically, user probably made a mistake earlier if system has no solution.
                 return False
 
-            # Check if Valid for ALL solutions
-            # e.g. x^2=4 -> x=2 OR x=-2. 
-            # If user writes x=2, it's not strictly implied (could be -2).
-            # But usually we want "is this consistent with at least one solution?" for partial checking?
-            # NO, "implied by" usually means "for all models of source, target is true".
-            # But in step-by-step solving, we often narrow down.
-            # If solutions is [{'x':4, 'y':1}], and target is x=4, then yes.
-            
             for sol in solutions:
-                # Check if target holds for this solution
-                # target might be Eq(x, 4)
                 if isinstance(target_eqn, _sympy.Eq):
                     lhs = target_eqn.lhs.subs(sol)
                     rhs = target_eqn.rhs.subs(sol)
                     if not _sympy.simplify(lhs - rhs) == 0:
                         return False
                 else:
-                    # If target is not an equation (e.g. just "3*x"), it cannot be "implied" by a system 
-                    # in the sense of a truth value. 
-                    # Unless it's a boolean expression?
-                    # For safety, if it's not an Eq, we should probably return False,
-                    # as we are looking for "System -> Step (Equation)" implication.
                     return False
                     
             return True
-            
-        except Exception as e:
-            # print(f"DEBUG: is_implied_by_system failed: {e}")
+        except Exception:
             return False
         if self._fallback is not None:
             return False
