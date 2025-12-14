@@ -78,6 +78,9 @@ class LearningLogger:
         if step_index is None:
             self._step_index += 1
         
+        meta_dict = meta or {}
+        timestamp = datetime.now(timezone.utc).isoformat()
+        
         entry = LearningLogEntry(
             step_number=idx,
             phase=phase,
@@ -85,8 +88,8 @@ class LearningLogger:
             rendered=rendered,
             status=status,
             rule_id=rule_id,
-            meta=meta or {},
-            timestamp=datetime.now(timezone.utc).isoformat(),
+            meta=meta_dict,
+            timestamp=timestamp,
             scope_id=scope_id,
             parent_scope_id=parent_scope_id,
             depth=depth,
@@ -94,6 +97,58 @@ class LearningLogger:
             is_redundant=is_redundant,
         )
         self.records.append(entry)
+        
+        # --- Memory Integration ---
+        # Only record meaningful steps (successful rule applications or explicit failures)
+        # Avoid recording overhead for every small internal step unless meaningful
+        if status in ("ok", "fuzzy_ok", "error", "contradiction") and expression and phase == "step":
+            try:
+                # Lazy import to avoid circular dependencies and startup cost
+                from .memory.factory import get_vector_store, get_embedder
+                from .memory.schema import ExperienceEntry
+                
+                store = get_vector_store()
+                embedder = get_embedder()
+                
+                # Determine result label
+                result_label = "EXACT" if status == "ok" else "ANALOGOUS" if status == "fuzzy_ok" else "CONTRADICT"
+                
+                # Construct vector representation
+                # "Problem: {expression}. Action: {rule_id}. Result: {status}"
+                text_to_embed = f"Problem: {expression}. Action: {rule_id or 'unknown'}. Result: {result_label}"
+                vector = embedder.embed_text(text_to_embed)
+                
+                # Store in DB
+                exp_entry = ExperienceEntry(
+                    id=f"exp_{timestamp}_{idx}",
+                    original_expr=expression,
+                    next_expr=str(rendered) if rendered else "",
+                    rule_id=rule_id or "",
+                    result_label=result_label,
+                    category=meta_dict.get("category", "universal"),
+                    score=float(meta_dict.get("score", 1.0)),
+                    vector=vector,  # type: ignore
+                    metadata={
+                        "timestamp": timestamp,
+                        "phase": phase
+                    }
+                )
+                
+                # Using add via wrapper
+                # Ideally we check check if the collection 'experience' exists or create it
+                # The adapter handles get_or_create
+                store.add(
+                    collection_name="experience",
+                    vectors=[vector],
+                    metadatas=[exp_entry.to_metadata()],
+                    ids=[exp_entry.id]
+                )
+            except ImportError:
+                # If memory dependencies are missing, skip quietly
+                pass
+            except Exception as e:
+                # Don't crash the main loop for logging errors, but log it
+                print(f"Warning: Failed to save experience to memory: {e}")
 
     def to_list(self) -> List[dict[str, Any]]:
         return [r.to_dict() for r in self.records]

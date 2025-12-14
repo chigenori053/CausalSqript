@@ -485,3 +485,18 @@ class KnowledgeRegistry:
         except Exception:
             return None
 
+    def semantic_search(self, query: str, category: Optional[str] = None, top_k: int = 5) -> List[Dict[str, Any]]:
+        """
+        Performs a semantic search for rules relevant to the query.
+        """
+        try:
+            from .memory import MemoryRetriever
+            retriever = MemoryRetriever()
+            return retriever.search_rules(query, category=category, top_k=top_k)
+        except ImportError:
+            print("Warning: Semantic search unavailable (dependencies missing).")
+            return []
+        except Exception as e:
+            print(f"Warning: Semantic search failed: {e}")
+            return []
+
