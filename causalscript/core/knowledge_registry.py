@@ -11,6 +11,7 @@ try:  # pragma: no cover - optional dependency
 except ImportError:  # pragma: no cover
     yaml = None
 
+import logging
 from .errors import InvalidExprError
 from .symbolic_engine import SymbolicEngine
 
@@ -57,18 +58,30 @@ class RuleMap:
 class KnowledgeRegistry:
     """Loads YAML rule files and performs basic matching."""
 
-    def __init__(self, base_path: Path, engine: SymbolicEngine) -> None:
-        self.base_path = base_path
+    def __init__(self, root_path: Path, engine: SymbolicEngine, custom_rules_path: Optional[Path] = None) -> None:
+        self.root_path = root_path
         self.engine = engine
-        self.nodes: List[KnowledgeNode] = self._load_all(base_path)
-        # Sort by priority descending
-        self.nodes.sort(key=lambda n: n.priority, reverse=True)
+        self.logger = logging.getLogger(__name__)
+
+        self._all_nodes: List[KnowledgeNode] = [] # Temporary list to collect all nodes
         
-        # Index rules by ID
-        self.rules_by_id: Dict[str, KnowledgeNode] = {node.id: node for node in self.nodes}
+        # Load core knowledge
+        self._load_nodes_from_dir(root_path)
+
+        # Index rules by ID (Initialize before custom loading)
+        self.rules_by_id: Dict[str, KnowledgeNode] = {node.id: node for node in self._all_nodes}
+        
+        # Load custom rules if path is provided
+        if custom_rules_path:
+            self.load_custom_rules(custom_rules_path)
+            # Re-sort after adding custom rules
+            self._all_nodes.sort(key=lambda n: n.priority, reverse=True)
+
+        # Legacy support
+        self.nodes = self._all_nodes 
         
         # Load maps
-        self.maps: List[RuleMap] = self._load_maps(base_path / "maps")
+        self.maps: List[RuleMap] = self._load_maps(root_path / "maps")
         self.maps.sort(key=lambda m: m.priority, reverse=True)
         
         # Sort rules within each map by priority
@@ -78,10 +91,38 @@ class KnowledgeRegistry:
                 reverse=True
             )
 
-    def _load_all(self, base_path: Path) -> List[KnowledgeNode]:
+    def load_custom_rules(self, custom_path: Path):
+        """Loads additional rules from a user-specified directory."""
+        if not custom_path.exists():
+            self.logger.warning(f"Custom rule path not found: {custom_path}")
+            return
+            
+        self.logger.info(f"Loading custom rules from: {custom_path}")
+        new_nodes = self._load_nodes_from_dir(custom_path)
+        
+        # Add to collection and update index
+        self._all_nodes.extend(new_nodes)
+        self._all_nodes.sort(key=lambda n: n.priority, reverse=True)
+        
+        # Re-index
+        for node in new_nodes:
+            self.rules_by_id[node.id] = node
+            
+        # Update self.nodes (legacy access, if any)
+        # Note: self.nodes was renamed to _all_nodes in __init__ but we should keep it for compatibility if needed, 
+        # or just make self.nodes a property. 
+        # For now, let's just make sure we populate it if the legacy code expects it. 
+        # In __init__ we removed `self.nodes = ...` line, so let's alias it.
+        self.nodes = self._all_nodes
+
+    def _load_nodes_from_dir(self, dir_path: Path) -> List[KnowledgeNode]:
+        """Recursive loader helper."""
         nodes: List[KnowledgeNode] = []
+        if not dir_path.exists():
+            return nodes
+            
         # Exclude maps directory from rule loading
-        for path in sorted(base_path.rglob("*.yaml")):
+        for path in sorted(dir_path.rglob("*.yaml")):
             if "maps" in path.parts:
                 continue
                 
@@ -91,10 +132,12 @@ class KnowledgeRegistry:
                     data = yaml.safe_load(text) or []
                 else:
                     data = self._parse_simple_yaml(text)
+                    
                 if not isinstance(data, list):
                     continue
+                    
                 for entry in data:
-                    # Normalize patterns (e.g. ^ -> **)
+                    # Normalize patterns
                     p_before = entry.get("pattern_before", "").replace("^", "**")
                     p_after = entry.get("pattern_after", "").replace("^", "**")
                     
@@ -111,10 +154,12 @@ class KnowledgeRegistry:
                         extra={k: v for k, v in entry.items() if k not in {"id", "domain", "category", "pattern_before", "pattern_after", "description", "priority", "condition", "concept"}},
                     )
                     nodes.append(node)
+                    self._all_nodes.append(node) # Also add to main list during init load
             except Exception as e:
-                print(f"Error loading {path}: {e}")
+                self.logger.error(f"Error loading {path}: {e}")
                 continue
         return nodes
+
 
     def _load_maps(self, maps_path: Path) -> List[RuleMap]:
         maps: List[RuleMap] = []

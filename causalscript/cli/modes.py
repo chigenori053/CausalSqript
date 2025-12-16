@@ -24,7 +24,7 @@ def run_symbolic_mode(program, learning_logger: LearningLogger) -> KnowledgeRegi
     computation_engine = ComputationEngine(symbolic_engine)
     
     knowledge_registry = KnowledgeRegistry(
-        base_path=Path(__file__).resolve().parents[1] / "core" / "knowledge",
+        root_path=Path(__file__).resolve().parents[1] / "core" / "knowledge",
         engine=symbolic_engine,
     )
     
