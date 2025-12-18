@@ -1,7 +1,7 @@
 
 import pytest
 from unittest.mock import MagicMock
-from causalscript.core.multimodal.integrator import MultimodalIntegrator
+from coherent.engine.multimodal.integrator import MultimodalIntegrator
 
 def test_integrator_text_flow():
     integrator = MultimodalIntegrator()

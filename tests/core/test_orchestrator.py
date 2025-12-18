@@ -1,7 +1,7 @@
 import pytest
-from causalscript.core.orchestrator import CoreOrchestrator
-from causalscript.core.parser import Parser
-from causalscript.core.errors import EvaluationError
+from coherent.engine.orchestrator import CoreOrchestrator
+from coherent.engine.parser import Parser
+from coherent.engine.errors import EvaluationError
 
 def test_orchestrator_arithmetic_mode():
     orchestrator = CoreOrchestrator()

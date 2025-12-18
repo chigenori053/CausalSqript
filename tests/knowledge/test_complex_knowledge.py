@@ -1,13 +1,13 @@
 
 import pytest
 from pathlib import Path
-from causalscript.core.symbolic_engine import SymbolicEngine
-from causalscript.core.knowledge_registry import KnowledgeRegistry
+from coherent.engine.symbolic_engine import SymbolicEngine
+from coherent.engine.knowledge_registry import KnowledgeRegistry
 
 @pytest.fixture
 def complex_registry():
     engine = SymbolicEngine()
-    root_path = Path("causalscript/core/knowledge")
+    root_path = Path("coherent/engine/knowledge")
     return KnowledgeRegistry(root_path, engine)
 
 def test_complex_i_definition(complex_registry):

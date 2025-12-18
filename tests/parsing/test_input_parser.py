@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import pytest
 
-from causalscript.core.input_parser import CausalScriptInputParser
+from coherent.engine.input_parser import CoherentInputParser
 
 
 @pytest.mark.parametrize(
@@ -28,4 +28,4 @@ from causalscript.core.input_parser import CausalScriptInputParser
 )
 def test_normalize_implicit_multiplication(input_expr: str, expected_output: str):
     """Tests normalization of expressions with implicit multiplication."""
-    assert CausalScriptInputParser.normalize(input_expr) == expected_output
+    assert CoherentInputParser.normalize(input_expr) == expected_output

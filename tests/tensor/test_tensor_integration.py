@@ -1,12 +1,12 @@
 import pytest
 import torch
 from unittest.mock import MagicMock
-from causalscript.core.reasoning.generator import HypothesisGenerator
-from causalscript.core.reasoning.simulator import LookaheadSimulator
-from causalscript.core.reasoning.types import Hypothesis
-from causalscript.core.tensor.engine import TensorLogicEngine
-from causalscript.core.tensor.converter import TensorConverter
-from causalscript.core.tensor.embeddings import EmbeddingRegistry
+from coherent.engine.reasoning.generator import HypothesisGenerator
+from coherent.engine.reasoning.simulator import LookaheadSimulator
+from coherent.engine.reasoning.types import Hypothesis
+from coherent.engine.tensor.engine import TensorLogicEngine
+from coherent.engine.tensor.converter import TensorConverter
+from coherent.engine.tensor.embeddings import EmbeddingRegistry
 
 class TestTensorIntegration:
     @pytest.fixture

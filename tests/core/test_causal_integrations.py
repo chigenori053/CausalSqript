@@ -1,10 +1,10 @@
-from causalscript.core.causal import CausalEngine
-from causalscript.core.causal.causal_types import CausalNodeType
-from causalscript.core.evaluator import Evaluator, SymbolicEvaluationEngine
-from causalscript.core.knowledge_registry import KnowledgeRegistry
-from causalscript.core.learning_logger import LearningLogger
-from causalscript.core.parser import Parser
-from causalscript.core.symbolic_engine import SymbolicEngine
+from coherent.logic import CausalEngine
+from coherent.logic.causal_types import CausalNodeType
+from coherent.engine.evaluator import Evaluator, SymbolicEvaluationEngine
+from coherent.engine.knowledge_registry import KnowledgeRegistry
+from coherent.engine.learning_logger import LearningLogger
+from coherent.engine.parser import Parser
+from coherent.engine.symbolic_engine import SymbolicEngine
 from pathlib import Path
 
 

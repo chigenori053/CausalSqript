@@ -1,0 +1,48 @@
+- id: ALG-POW-001
+  domain: algebra
+  category: exponents
+  pattern_before: "a**2"
+  pattern_after: "a * a"
+  description: "2乗の定義"
+  priority: 80
+  concept: "square_definition"
+
+- id: ALG-POW-002
+  domain: algebra
+  category: exponents
+  pattern_before: "a**n * a**m"
+  pattern_after: "a**(n + m)"
+  description: "指数法則（積）"
+  concept: "exponent_product_rule"
+
+# 分数の累乗（展開）
+# (a/b)^2 -> (a*a)/(b*b) のような形を認識します
+- id: ALG-POW-FRAC-001
+  domain: universal
+  category: exponents
+  priority: 100
+  pattern_before: "(a / b)**2"
+  pattern_after: "(a * a) / (b * b)"
+  description: "商の2乗の展開: (a/b)^2 = (a*a)/(b*b)"
+  concept: "exponent_fraction_rule"
+
+# 商の累乗法則（一般形）
+# (a/b)^n -> a^n / b^n
+- id: ALG-POW-FRAC-002
+  domain: universal
+  category: exponents
+  priority: 95
+  pattern_before: "(a / b)**n"
+  pattern_after: "a**n / b**n"
+  description: "商の累乗法則"
+  concept: "exponent_quotient_rule"
+
+# 分数の積への分解（もし (√3/2)*(√3/2) の形を意図する場合）
+- id: ALG-POW-DEF-FRAC
+  domain: universal
+  category: exponents
+  priority: 100
+  pattern_before: "(a / b)**2"
+  pattern_after: "(a / b) * (a / b)"
+  description: "2乗の定義（分数）"
+  concept: "square_definition"

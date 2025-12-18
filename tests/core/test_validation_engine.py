@@ -1,11 +1,11 @@
 """Tests for ValidationEngine."""
 
 import pytest
-from causalscript.core.computation_engine import ComputationEngine
-from causalscript.core.symbolic_engine import SymbolicEngine
+from coherent.engine.computation_engine import ComputationEngine
+from coherent.engine.symbolic_engine import SymbolicEngine
 sympy = pytest.importorskip("sympy")
-from causalscript.core.validation_engine import ValidationEngine, ValidationResult
-from causalscript.core.exercise_spec import ExerciseSpec
+from coherent.engine.validation_engine import ValidationEngine, ValidationResult
+from coherent.engine.exercise_spec import ExerciseSpec
 
 
 @pytest.fixture

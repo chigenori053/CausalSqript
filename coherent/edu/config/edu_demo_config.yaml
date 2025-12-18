@@ -1,0 +1,17 @@
+{
+  "scenarios": {
+    "basic_arithmetic": {
+      "description": "DSL v2.5 sample with meta/config/prepare blocks",
+      "file": "coherent/edu/examples/pythagorean.coh"
+    },
+    "counterfactual": {
+      "description": "Demonstrate counterfactual editing (step + counterfactual block)",
+      "file": "coherent/edu/examples/counterfactual_demo.coh",
+      "counterfactual": {
+        "phase": "step",
+        "index": 2,
+        "expression": "8 * scale_factor"
+      }
+    }
+  }
+}

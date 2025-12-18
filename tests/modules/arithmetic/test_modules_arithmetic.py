@@ -1,7 +1,7 @@
 import pytest
-from causalscript.core.modules.arithmetic.parser import ArithmeticParser
-from causalscript.core.modules.arithmetic.engine import FastMathEngine
-from causalscript.core.errors import InvalidExprError
+from coherent.engine.modules.arithmetic.parser import ArithmeticParser
+from coherent.engine.modules.arithmetic.engine import FastMathEngine
+from coherent.engine.errors import InvalidExprError
 
 @pytest.fixture
 def parser():

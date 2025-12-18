@@ -2,26 +2,26 @@ import pytest
 from typing import Any
 from pathlib import Path
 
-from causalscript.core.evaluator import Evaluator, SymbolicEvaluationEngine, Engine
-from causalscript.core.errors import MissingProblemError, SyntaxError as DslSyntaxError
-from causalscript.core.fuzzy.types import FuzzyLabel, FuzzyResult
-from causalscript.core.knowledge_registry import KnowledgeRegistry
-from causalscript.core.learning_logger import LearningLogger
-from causalscript.core.parser import Parser
-from causalscript.core.symbolic_engine import SymbolicEngine
+from coherent.engine.evaluator import Evaluator, SymbolicEvaluationEngine, Engine
+from coherent.engine.errors import MissingProblemError, SyntaxError as DslSyntaxError
+from coherent.engine.fuzzy.types import FuzzyLabel, FuzzyResult
+from coherent.engine.knowledge_registry import KnowledgeRegistry
+from coherent.engine.learning_logger import LearningLogger
+from coherent.engine.parser import Parser
+from coherent.engine.symbolic_engine import SymbolicEngine
 
 def _program_from_source(source: str):
     return Parser(source).parse()
 
 def _engine(fuzzy_judge=None):
-    from causalscript.core.core_runtime import CoreRuntime
-    from causalscript.core.computation_engine import ComputationEngine
-    from causalscript.core.validation_engine import ValidationEngine
-    from causalscript.core.hint_engine import HintEngine
+    from coherent.engine.core_runtime import CoreRuntime
+    from coherent.engine.computation_engine import ComputationEngine
+    from coherent.engine.validation_engine import ValidationEngine
+    from coherent.engine.hint_engine import HintEngine
     
     sym = SymbolicEngine()
     comp = ComputationEngine(sym)
-    registry = KnowledgeRegistry(Path("causalscript/core/knowledge"), sym)
+    registry = KnowledgeRegistry(Path("coherent/engine/knowledge"), sym)
     
     val = ValidationEngine(comp, fuzzy_judge=fuzzy_judge, knowledge_registry=registry)
     hint = HintEngine(comp)

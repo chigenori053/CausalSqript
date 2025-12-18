@@ -2,10 +2,10 @@ import pytest
 import torch
 import json
 from pathlib import Path
-from causalscript.core.tensor.engine import TensorLogicEngine
-from causalscript.core.tensor.converter import TensorConverter
-from causalscript.core.tensor.embeddings import EmbeddingRegistry
-from causalscript.core.tensor.trainer import TensorTrainer
+from coherent.engine.tensor.engine import TensorLogicEngine
+from coherent.engine.tensor.converter import TensorConverter
+from coherent.engine.tensor.embeddings import EmbeddingRegistry
+from coherent.engine.tensor.trainer import TensorTrainer
 
 class TestLearningLoop:
     def test_training_loop(self, tmp_path):

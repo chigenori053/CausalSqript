@@ -1,15 +1,15 @@
-# CausalScript Evaluator v2 — Specification (Draft v2.0)
+# Coherent Evaluator v2 — Specification (Draft v2.0)
 
 Document Version: v2.0  
 Status: Internal Design Specification  
 Scope: Evaluator / Logging System / Error Model  
-Author: CausalScript Project Specification
+Author: Coherent Project Specification
 
 ---
 
 # 0. Overview
 
-This document defines the complete specification for **CausalScript Evaluator v2**,  
+This document defines the complete specification for **Coherent Evaluator v2**,  
 including its execution model (`problem → step* → end`) and the unified logging  
 system (`ok`, `mistake`, `fatal`).
 
@@ -19,10 +19,10 @@ Evaluator v2 introduces a new error-handling philosophy:
   They are logged as `mistake` and evaluation continues.
 
 - **Only fatal errors produce exceptions.**  
-  These are situations where CausalScript cannot continue evaluating the program  
+  These are situations where Coherent cannot continue evaluating the program  
   (e.g., syntax errors, corrupted AST, SymPy failures).
 
-This design aligns with CausalScript’s educational philosophy:
+This design aligns with Coherent’s educational philosophy:
 **"Even wrong steps are meaningful steps in the learning process."**
 
 ---

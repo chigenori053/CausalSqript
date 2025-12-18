@@ -2,8 +2,8 @@
 import pytest
 import shutil
 from pathlib import Path
-from causalscript.core.knowledge_registry import KnowledgeRegistry, KnowledgeNode
-from causalscript.core.symbolic_engine import SymbolicEngine
+from coherent.engine.knowledge_registry import KnowledgeRegistry, KnowledgeNode
+from coherent.engine.symbolic_engine import SymbolicEngine
 
 @pytest.fixture
 def temp_rule_dir(tmp_path):
@@ -29,7 +29,7 @@ def test_custom_rule_loading(temp_rule_dir):
     
     # Initialize registry pointing to correct core knowledge path
     # We use the real core path + our custom path
-    core_path = Path("causalscript/core/knowledge").resolve()
+    core_path = Path("coherent/engine/knowledge").resolve()
     
     registry = KnowledgeRegistry(
         root_path=core_path, 

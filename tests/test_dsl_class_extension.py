@@ -1,14 +1,14 @@
 import pytest
 
-from causalscript.core import ast_nodes as ast
-from causalscript.core.parser import Parser
-from causalscript.core.core_runtime import CoreRuntime
-from causalscript.core.symbolic_engine import SymbolicEngine
-from causalscript.core.computation_engine import ComputationEngine
-from causalscript.core.validation_engine import ValidationEngine
-from causalscript.core.hint_engine import HintEngine
-from causalscript.core.evaluator import Evaluator
-from causalscript.core.learning_logger import LearningLogger
+from coherent.engine import ast_nodes as ast
+from coherent.engine.parser import Parser
+from coherent.engine.core_runtime import CoreRuntime
+from coherent.engine.symbolic_engine import SymbolicEngine
+from coherent.engine.computation_engine import ComputationEngine
+from coherent.engine.validation_engine import ValidationEngine
+from coherent.engine.hint_engine import HintEngine
+from coherent.engine.evaluator import Evaluator
+from coherent.engine.learning_logger import LearningLogger
 
 
 def test_parser_supports_named_problem_and_variable_sub_problem():

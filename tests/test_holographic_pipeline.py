@@ -1,13 +1,13 @@
 import pytest
 import torch
 import numpy as np
-from causalscript.core.holographic.data_types import HolographicTensor, SpectrumConfig
-from causalscript.core.multimodal.text_encoder import HolographicTextEncoder
-from causalscript.core.multimodal.vision_encoder import HolographicVisionEncoder
-from causalscript.core.multimodal.audio_encoder import HolographicAudioEncoder
-from causalscript.core.optical.layer import OpticalInterferenceEngine
-from causalscript.core.holographic.memory import HolographicStorage
-from causalscript.core.holographic.orchestrator import HolographicOrchestrator
+from coherent.engine.holographic.data_types import HolographicTensor, SpectrumConfig
+from coherent.engine.multimodal.text_encoder import HolographicTextEncoder
+from coherent.engine.multimodal.vision_encoder import HolographicVisionEncoder
+from coherent.engine.multimodal.audio_encoder import HolographicAudioEncoder
+from coherent.optical.layer import OpticalInterferenceEngine
+from coherent.engine.holographic.memory import HolographicStorage
+from coherent.engine.holographic.orchestrator import HolographicOrchestrator
 
 # Mock existing dependencies if necessary
 # Assuming sentence-transformers and Pillow might be missing in test env, 

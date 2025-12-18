@@ -1,7 +1,7 @@
 import pytest
 import torch
-from causalscript.core.tensor.layers import TensorRuleLayer, LogicChainLayer, LogicAndLayer
-from causalscript.core.tensor.functional import prob_and, prob_or, prob_not
+from coherent.engine.tensor.layers import TensorRuleLayer, LogicChainLayer, LogicAndLayer
+from coherent.engine.tensor.functional import prob_and, prob_or, prob_not
 
 class TestTensorRules:
     def test_chain_rule_logic(self):

@@ -1,5 +1,5 @@
 import pytest
-from causalscript.core.context_manager import ContextManager
+from coherent.engine.context_manager import ContextManager
 
 def test_context_manager_basic_ops():
     cm = ContextManager()

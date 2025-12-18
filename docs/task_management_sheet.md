@@ -3,7 +3,7 @@
 
 ## 1. サマリー
 
-本プロジェクト「CausalScript」は、数学的な思考プロセスを可視化することを目的とした教育用ドメイン固有言語（DSL）です。コアアーキテクチャは、構文木（AST）と数理定理を適用するルールベースのエンジンを分離しており、教育的な透明性を重視した設計となっています。
+本プロジェクト「Coherent」は、数学的な思考プロセスを可視化することを目的とした教育用ドメイン固有言語（DSL）です。コアアーキテクチャは、構文木（AST）と数理定理を適用するルールベースのエンジンを分離しており、教育的な透明性を重視した設計となっています。
 
 ## 2. 現在の進行状況
 
@@ -42,7 +42,7 @@
 
 以上
 =======
-# CausalScript 開発タスク管理シート
+# Coherent 開発タスク管理シート
 
 ## レジェンド
 - **フェーズ**: README/仕様書で定義されたPhase 1〜4に対応。
@@ -50,7 +50,7 @@
 - **状態**: 未完了 / 進行中 / 完了（元の Backlog/Blocked/Review 等は備考に記載）。
 
 ## サマリー（2025-11-11 時点）
-- **Core Engineリファクタリング**: `core/ast_nodes.py`, `core/parser.py`, `core/evaluator.py`, `core/optimizer.py`, `core/polynomial_evaluator.py` を `docs/CausalScript_Core_Engine_Architecture_v1.md` に沿って更新済み。`tests/test_parser.py` / `tests/test_evaluator.py` / `tests/test_optimizer.py` もグリーンを維持している。
+- **Core Engineリファクタリング**: `core/ast_nodes.py`, `core/parser.py`, `core/evaluator.py`, `core/optimizer.py`, `core/polynomial_evaluator.py` を `docs/Coherent_Core_Engine_Architecture_v1.md` に沿って更新済み。`tests/test_parser.py` / `tests/test_evaluator.py` / `tests/test_optimizer.py` もグリーンを維持している。
 - **Knowledge Base整備**: `core/knowledge/__init__.py` と `core/knowledge/arithmetic/*.json` でKnowledgeRegistryと四則カテゴリの雛形を配置したが、`docs/knowledge_nodes_spec.md` に記載したカテゴリ分割・テスト連携は未完了のため P2-06 / P2-07 / P2-09 が残る。
 - **Phase 3着手**: `core/logging.py` の `LearningLogger` を `core/evaluator.py` に接続し、`notebooks/Learning_Log_Demo.ipynb` で出力デモを確認。Notebook UI拡張とDemoパッケージ化（P3-01/02/03/04）を並行推進中。
 
@@ -71,8 +71,8 @@
 | P2-07 | Phase 2 | Knowledge Base | 四則演算カテゴリ別ノード整備 | `arithmetic/{addition,subtraction,multiplication,division}.json`に実用ルールを追加しテストを更新 | TBD | H | 未完了（Backlog） | 2025-12-10 | `core/knowledge/arithmetic/*.json`には各1ルールのみで、`Evaluator`/`PolynomialEvaluator`照合テスト（`tests/test_polynomial_scenario.py`等）が未連携。 |
 | P2-09 | Phase 2 | テスト | Core DSL等価性検証テストの修正 | リファクタで無効化した等価性テストをCI緑に戻す | TBD | M | 未完了（Backlog） | 2025-11-16 | `tests/test_evaluator.py`の`_test_core_dsl_*`は先頭アンダースコアで収集されず、KnowledgeRegistry＋SymbolicEngineの統合確認がスキップされたまま。 |
 | P3-03 | Phase 3 | Demo | Demoパッケージ化 | Notebook/CLI/シンボリック例をまとめた`demo/`配布物と実行スクリプトを整備 | TBD | H | 未完了（Backlog） | 2025-12-27 | `demo/`ディレクトリ未作成。P3-01/02とOPS-01の成果が前提。 |
-| P3-04 | Phase 3 | UI | インタラクティブなNotebook UI | ipywidgetsを使いCausalScriptコードを実行できるUIを実装 | TBD | M | 未完了（Backlog） | 2025-12-15 | ベースは`notebooks/Learning_Log_Demo.ipynb`のみで、ウィジェット連携や`main.py`呼び出しUIが未実装。 |
-| P4-01 | Phase 4 | リリース | Beta v0.9リリース準備 | リリースノート＋タグ付け＋README更新 | TBD | M | 未完了（Backlog） | 2026-01-15 | `docs/CausalScript_SPECIFICATION.md`/`README.md`更新とデモ完成が依存。 |
+| P3-04 | Phase 3 | UI | インタラクティブなNotebook UI | ipywidgetsを使いCoherentコードを実行できるUIを実装 | TBD | M | 未完了（Backlog） | 2025-12-15 | ベースは`notebooks/Learning_Log_Demo.ipynb`のみで、ウィジェット連携や`main.py`呼び出しUIが未実装。 |
+| P4-01 | Phase 4 | リリース | Beta v0.9リリース準備 | リリースノート＋タグ付け＋README更新 | TBD | M | 未完了（Backlog） | 2026-01-15 | `docs/Coherent_SPECIFICATION.md`/`README.md`更新とデモ完成が依存。 |
 | OPS-01 | Cross | ドキュメント | README/仕様書の二重管理整備 | 仕様更新時の差分手順テンプレ作成 | TBD | M | 未完了（Backlog） | 2024-11-15 | `Agent_ja.md`に運用メモはあるがテンプレ未作成。 |
 | OPS-02 | Cross | 技術的負債 | Notebookフォーマット警告解消 | nbformat.normalize()等でMissingIDFieldWarningを解消 | TBD | L | 未完了（Backlog） | 2025-11-25 | `notebooks/Learning_Log_Demo.ipynb`の警告ログをCIで拾う仕組みが未整備。 |
 
@@ -95,7 +95,7 @@
 | P2-03 | Phase 2 | SymbolicAI | Evaluator統合＆trace拡張 | Evaluator/CLIからSymbolicEngineを呼び出し`show`出力で簡約結果を提示 | TBD | H | 完了 | 2025-12-05 | `Evaluator(symbolic_engine_factory)`導入、CLI `--symbolic-trace`で統合済。 |
 | P2-04 | Phase 2 | インフラ | SymPy/Jupyter環境整備 | SymPyをCI/開発環境でインストールし`python main.py --symbolic`が実機で成功 | TBD | H | 完了 | 2025-11-25 | `uv`環境でSymPy導入済、CIも`uv run pytest`で成功（2025-11-09）。 |
 | P2-05 | Phase 2 | SymbolicAI | 多項式四則演習スクリプト | CLI/`--polynomial`で演算結果を表示 | TBD | H | 完了 | 2025-12-02 | `edu/examples/polynomial_arithmetic.mlang`＋`tests/test_polynomial.py`/`tests/test_polynomial_scenario.py`で確認。 |
-| P2-08 | Phase 2 | リファクタリング | コアエンジンを新アーキテクチャ仕様に準拠 | ast_nodes, parser, evaluator, optimizer等を更新しテストを修正 | TBD | H | 完了 | 2025-11-09 | `core/`各モジュールを`docs/CausalScript_Core_Engine_Architecture_v1.md`準拠へ移行済。 |
+| P2-08 | Phase 2 | リファクタリング | コアエンジンを新アーキテクチャ仕様に準拠 | ast_nodes, parser, evaluator, optimizer等を更新しテストを修正 | TBD | H | 完了 | 2025-11-09 | `core/`各モジュールを`docs/Coherent_Core_Engine_Architecture_v1.md`準拠へ移行済。 |
 
 ## デモ版完成までのプロセス（案）
 | ステップ | 期間目安 | 主担当タスク | 成果物/Exit Criteria | リスク・備考 |

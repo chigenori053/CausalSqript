@@ -1,5 +1,5 @@
 
-from causalscript.core.symbolic_engine import SymbolicEngine
+from coherent.engine.symbolic_engine import SymbolicEngine
 from sympy import Wild, parse_expr
 import sympy
 

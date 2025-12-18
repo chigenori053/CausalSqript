@@ -1,9 +1,9 @@
 import pytest
 sympy = pytest.importorskip("sympy")
-from causalscript.core.hint_engine import HintEngine, HintResult, HintCandidate, HintPersona
-from causalscript.core.computation_engine import ComputationEngine
-from causalscript.core.symbolic_engine import SymbolicEngine
-from causalscript.core.exercise_spec import ExerciseSpec
+from coherent.engine.hint_engine import HintEngine, HintResult, HintCandidate, HintPersona
+from coherent.engine.computation_engine import ComputationEngine
+from coherent.engine.symbolic_engine import SymbolicEngine
+from coherent.engine.exercise_spec import ExerciseSpec
 
 @pytest.fixture
 def engine():

@@ -1,7 +1,7 @@
 import pytest
 import numpy as np
 import torch
-from causalscript.core.memory.optical_store import OpticalFrequencyStore
+from coherent.memory.optical_store import OpticalFrequencyStore
 
 class TestOpticalFrequencyStore:
     

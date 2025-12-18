@@ -1,9 +1,9 @@
 import pytest
 sympy = pytest.importorskip("sympy")
-from causalscript.core.symbolic_engine import SymbolicEngine
-from causalscript.core.computation_engine import ComputationEngine
-from causalscript.core.geometry_engine import GeometryEngine
-from causalscript.core.function_analysis import FunctionAnalyzer
+from coherent.engine.symbolic_engine import SymbolicEngine
+from coherent.engine.computation_engine import ComputationEngine
+from coherent.engine.geometry_engine import GeometryEngine
+from coherent.engine.function_analysis import FunctionAnalyzer
 
 def test_to_latex():
     sym_engine = SymbolicEngine()

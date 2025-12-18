@@ -1,0 +1,97 @@
+# Integration Rules
+
+- id: CALC-DEF-INT
+  domain: calculus
+  category: definition
+  pattern_before: "Integral(f, (x, a, b))"
+  pattern_after: "Subs(Integral(f, x), x, b) - Subs(Integral(f, x), x, a)"
+  description: "Fundamental Theorem of Calculus (Definite Integral)"
+  priority: 150
+  concept: "fundamental_theorem_of_calculus"
+
+- id: CALC-INT-POWER
+  domain: calculus
+  category: calculation
+  pattern_before: "Integral(x**n, x)"
+  pattern_after: "x**(n + 1) / (n + 1)"
+  description: "Power Rule for Integration"
+  priority: 150
+  condition: "n != -1"
+  concept: "power_rule_integration"
+
+- id: CALC-INT-LINEAR
+  domain: calculus
+  category: simplification
+  pattern_before: "Integral(c * f, x)"
+  pattern_after: "c * Integral(f, x)"
+  description: "Constant Multiple Rule for Integration"
+  priority: 150
+  condition: "is_numeric(c) or (c.is_Symbol and c != x)"
+  concept: "constant_multiple_rule_integration"
+
+- id: CALC-BOUNDS-EVAL
+  domain: calculus
+  category: calculation
+  pattern_before: "Subs(f, x, b) - Subs(f, x, a)"
+  pattern_after: "f.subs(x, b) - f.subs(x, a)"
+  description: "Evaluation of Integral Bounds"
+  priority: 150
+  concept: "definite_integral_evaluation"
+
+- id: CALC-INT-CONST-DEF
+  domain: calculus
+  category: simplification
+  pattern_before: "Integral(c * f, (x, a, b))"
+  pattern_after: "c * Integral(f, (x, a, b))"
+  description: "Constant Multiple Rule for Definite Integration"
+  priority: 160
+  condition: "(is_numeric(c) and c != 1) or (c.is_Symbol and c != x)"
+  concept: "constant_multiple_rule_integration"
+
+- id: CALC-INT-SUM
+  domain: calculus
+  category: simplification
+  pattern_before: "Integral(f + g, x)"
+  pattern_after: "Integral(f, x) + Integral(g, x)"
+  description: "Sum Rule for Integration"
+  priority: 150
+  concept: "sum_rule_integration"
+
+- id: CALC-INT-CONST-VAL
+  domain: calculus
+  category: calculation
+  pattern_before: "Integral(c, x)"
+  pattern_after: "c * x"
+  description: "Integral of a constant"
+  priority: 150
+  condition: "is_numeric(c)"
+  concept: "constant_integration"
+
+- id: CALC-INT-EVAL
+  domain: calculus
+  category: calculation
+  pattern_before: "Integral(f, (x, a, b))"
+  pattern_after: "Subs(Integral(f, x), x, b) - Subs(Integral(f, x), x, a)"
+  description: "Evaluate Definite Integral"
+  priority: 150
+  concept: "fundamental_theorem_of_calculus"
+
+- id: CALC-INT-EVAL-CONST
+  domain: calculus
+  category: calculation
+  pattern_before: "c * Integral(f, (x, a, b))"
+  pattern_after: "Subs(c * Integral(f, x), x, b) - Subs(c * Integral(f, x), x, a)"
+  description: "Evaluate Definite Integral with Constant"
+  priority: 150
+  condition: "is_numeric(c) or (c.is_Symbol and c != x)"
+  concept: "definite_integral_evaluation"
+
+- id: CALC-INT-POLY
+  domain: calculus
+  category: calculation
+  pattern_before: "Integral(c * x**n, x)"
+  pattern_after: "c * x**(n + 1) / (n + 1)"
+  description: "Integral of Polynomial Term"
+  priority: 140
+  condition: "n != -1 and (is_numeric(c) or (c.is_Symbol and c != x))"
+  concept: "power_rule_integration"

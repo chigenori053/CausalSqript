@@ -1,7 +1,7 @@
 [project]
-name = "causalscript"
+name = "coherent-ai"
 version = "0.1.0"
-description = "Add your description here"
+description = "Optical Interference Calculation & Causal Intelligence System"
 readme = "README.md"
 requires-python = ">=3.12,<3.13"
 dependencies = [
@@ -15,7 +15,10 @@ dependencies = [
     "sentence-transformers>=5.2.0",
     "chromadb>=1.3.7",
     "torch>=2.0.0",
+    "numpy>=2.3.4",
 ]
+[project.scripts]
+coherent = "coherent.cli.main:main"
 
 [tool.pytest.ini_options]
 pythonpath = [

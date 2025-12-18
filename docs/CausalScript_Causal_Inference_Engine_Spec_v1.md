@@ -1,6 +1,6 @@
-# CausalScript Causal Inference Engine – Implementation Spec (v1)
+# Coherent Causal Inference Engine – Implementation Spec (v1)
 
-> Target: Python 3.12, existing CausalScript Core (Parser / Evaluator / SymbolicEngine / KnowledgeRegistry / LearningLogger)  
+> Target: Python 3.12, existing Coherent Core (Parser / Evaluator / SymbolicEngine / KnowledgeRegistry / LearningLogger)  
 > Purpose: Add **causal inference capabilities** on top of the existing **step-by-step reasoning log**.
 
 ---
@@ -10,7 +10,7 @@
 ### 1.1 Goals
 
 - Provide a **Causal Inference Engine** that can:
-  - Build a **causal graph** over CausalScript events (problem / step / end / explain / error).
+  - Build a **causal graph** over Coherent events (problem / step / end / explain / error).
   - Answer simple **causal queries**:
     - “Which operation caused this error?”
     - “If we changed this step, would the result change?”
@@ -53,7 +53,7 @@ mathlang/
 
 ### 3.1 Causal Node Types
 
-Represent each “event” in CausalScript as a node in a causal graph.
+Represent each “event” in Coherent as a node in a causal graph.
 
 ```python
 # core/causal/causal_types.py
@@ -149,7 +149,7 @@ from .causal_types import CausalNode, CausalNodeType, CausalEdge, CausalEdgeType
 
 class CausalEngine:
     """
-    Main entry point for causal reasoning in CausalScript.
+    Main entry point for causal reasoning in Coherent.
     It consumes LearningLogger-like event streams and builds a causal graph.
     """
 
@@ -394,7 +394,7 @@ fix_candidates = causal_engine.suggest_fix_candidates(error_node_id)
 
 ### 8.2 Integration Tests (`tests/test_causal_integrations.py`)
 
-- Build a tiny CausalScript script, run through:
+- Build a tiny Coherent script, run through:
   - `Parser` → `Evaluator` (+ `LearningLogger`) → `CausalEngine`.
 - Assert:
   - Errors in evaluator result in ERROR nodes in causal graph.

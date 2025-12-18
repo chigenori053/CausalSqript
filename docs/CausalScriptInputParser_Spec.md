@@ -1,11 +1,11 @@
-# CausalScriptInputParser Specification
+# CoherentInputParser Specification
 Version: 0.1
 Status: Draft
-Target: Codex / CausalScript Core Engine
+Target: Codex / Coherent Core Engine
 
 ## 1. Purpose
-CausalScriptInputParser converts *human-friendly mathematical expressions* into
-CausalScript-compatible normalized expressions usable by the main DSL parser.
+CoherentInputParser converts *human-friendly mathematical expressions* into
+Coherent-compatible normalized expressions usable by the main DSL parser.
 
 This parser hides Python/SymPy-like syntax from educational users while producing
 valid internal expressions for:
@@ -28,7 +28,7 @@ Examples:
 - √x + 2y
 - (x - 1)(x + 1)
 
-### Output (internal normalized CausalScript/SymPy form)
+### Output (internal normalized Coherent/SymPy form)
 - (x - y)**2
 - 2*x*y + 3*x
 - (a+b)**3
@@ -136,7 +136,7 @@ The output must:
 - Use "**" for exponentiation
 - Explicitly insert "*" for all multiplications
 - Use ASCII except identifiers
-- Be a valid SymPy/CausalScript-compatible expression
+- Be a valid SymPy/Coherent-compatible expression
 
 Example final output:
 ```
@@ -148,10 +148,10 @@ sqrt(x) + 2*y
 
 ## 10. Integration with DSL Parser
 
-CausalScriptInputParser is applied **before** DSL parsing:
+CoherentInputParser is applied **before** DSL parsing:
 
 ```
-expr = CausalScriptInputParser.normalize("(x-y)^2")
+expr = CoherentInputParser.normalize("(x-y)^2")
 source = f"problem: {expr}"
 program = Parser(source).parse()
 ```
@@ -169,7 +169,7 @@ Evaluator receives normalized expressions for:
 ## 11. Public API
 
 ```python
-class CausalScriptInputParser:
+class CoherentInputParser:
     @staticmethod
     def normalize(expr: str) -> str:
         ...
@@ -231,9 +231,9 @@ output: 3*x*(x+1)**2
 
 ## 13. Error Handling
 Raise:
-- CausalScriptInputError("invalid parentheses")
-- CausalScriptInputError("unknown unicode token")
-- CausalScriptInputError("ambiguous implicit multiplication")
+- CoherentInputError("invalid parentheses")
+- CoherentInputError("unknown unicode token")
+- CoherentInputError("ambiguous implicit multiplication")
 
 ---
 

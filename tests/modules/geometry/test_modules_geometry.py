@@ -1,11 +1,11 @@
 import pytest
-from causalscript.core.modules.geometry.parser import GeometryParser
-from causalscript.core.modules.geometry.engine import GeometryEngine
+from coherent.engine.modules.geometry.parser import GeometryParser
+from coherent.engine.modules.geometry.engine import GeometryEngine
 
 def test_geometry_parser():
     # Point(0, 0)
     parser = GeometryParser()
-    # Assuming CausalScriptInputParser normalizes or simply passes "Point(0,0)"
+    # Assuming CoherentInputParser normalizes or simply passes "Point(0,0)"
     # And SymbolicEngine to_internal converts it to SymPy Point if valid
     expr = parser.parse("Point(0, 0)")
     

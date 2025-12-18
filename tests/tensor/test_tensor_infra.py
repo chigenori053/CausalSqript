@@ -1,8 +1,8 @@
 import pytest
 import torch
-from causalscript.core.tensor.embeddings import EmbeddingRegistry
-from causalscript.core.tensor.converter import TensorConverter
-from causalscript.core.tensor.engine import TensorLogicEngine
+from coherent.engine.tensor.embeddings import EmbeddingRegistry
+from coherent.engine.tensor.converter import TensorConverter
+from coherent.engine.tensor.engine import TensorLogicEngine
 
 class TestTensorInfrastructure:
     def test_embedding_registry(self):

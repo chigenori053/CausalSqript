@@ -1,0 +1,3 @@
+language: "ja"
+default_font_size: 14
+show_causal_summary: true

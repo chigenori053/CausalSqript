@@ -8,7 +8,7 @@ import types
 try:  # pragma: no cover - only executed when PyYAML is installed.
     import yaml  # type: ignore
 except ModuleNotFoundError:  # pragma: no cover - executed in test envs without PyYAML.
-    from causalscript_yaml import dump, safe_load
+    from coherent_yaml import dump, safe_load
 
     fallback = types.ModuleType("yaml")
     fallback.safe_load = safe_load

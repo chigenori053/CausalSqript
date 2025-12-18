@@ -1,6 +1,6 @@
 
 import unittest
-from causalscript.core.parser import Parser
+from coherent.engine.parser import Parser
 
 class TestMatrixParsing(unittest.TestCase):
     def test_multiline_matrix(self):

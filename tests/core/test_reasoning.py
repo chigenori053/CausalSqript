@@ -5,16 +5,16 @@ pytest.importorskip("sympy")
 from pathlib import Path
 from unittest.mock import MagicMock
 
-from causalscript.core.core_runtime import CoreRuntime
-from causalscript.core.computation_engine import ComputationEngine
-from causalscript.core.validation_engine import ValidationEngine
-from causalscript.core.hint_engine import HintEngine
-from causalscript.core.knowledge_registry import KnowledgeRegistry
-from causalscript.core.symbolic_engine import SymbolicEngine
-from causalscript.core.reasoning.agent import ReasoningAgent
-from causalscript.core.reasoning.generator import HypothesisGenerator
-from causalscript.core.reasoning.goal import GoalScanner
-from causalscript.core.reasoning.types import Hypothesis
+from coherent.engine.core_runtime import CoreRuntime
+from coherent.engine.computation_engine import ComputationEngine
+from coherent.engine.validation_engine import ValidationEngine
+from coherent.engine.hint_engine import HintEngine
+from coherent.engine.knowledge_registry import KnowledgeRegistry
+from coherent.engine.symbolic_engine import SymbolicEngine
+from coherent.engine.reasoning.agent import ReasoningAgent
+from coherent.engine.reasoning.generator import HypothesisGenerator
+from coherent.engine.reasoning.goal import GoalScanner
+from coherent.engine.reasoning.types import Hypothesis
 
 class TestReasoningComponents(unittest.TestCase):
     def setUp(self):
@@ -71,9 +71,9 @@ class TestReasoningIntegration(unittest.TestCase):
         self.val_engine = ValidationEngine(self.comp_engine)
         self.hint_engine = HintEngine(self.comp_engine)
         
-        base_path = Path("causalscript/core/knowledge")
+        base_path = Path("coherent/engine/knowledge")
         if not base_path.exists():
-             base_path = Path("../causalscript/core/knowledge")
+             base_path = Path("../coherent/engine/knowledge")
 
         self.registry = KnowledgeRegistry(base_path, self.sym_engine)
         

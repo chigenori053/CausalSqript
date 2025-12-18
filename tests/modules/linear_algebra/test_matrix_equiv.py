@@ -1,6 +1,6 @@
 
 import pytest
-from causalscript.core.symbolic_engine import SymbolicEngine
+from coherent.engine.symbolic_engine import SymbolicEngine
 
 try:
     import sympy

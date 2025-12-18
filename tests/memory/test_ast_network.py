@@ -1,8 +1,8 @@
 
 import pytest
 from unittest.mock import MagicMock
-from causalscript.core.memory.ast_generalizer import ASTGeneralizer
-from causalscript.core.memory.experience_manager import ExperienceManager
+from coherent.memory.ast_generalizer import ASTGeneralizer
+from coherent.memory.experience_manager import ExperienceManager
 
 def test_ast_generalization():
     gen = ASTGeneralizer()

@@ -1,10 +1,10 @@
-# CausalScript CLI UI Specification (edu / pro / demo)
+# Coherent CLI UI Specification (edu / pro / demo)
 Version: 0.1
 Status: Draft
-Target: Codex / CausalScript Dev Environment
+Target: Codex / Coherent Dev Environment
 
 ## 1. Purpose
-This document defines the CLI directory layout and execution rules for CausalScript's edu, pro, and demo environments. It ensures that each variant can be executed and tested using CLI-based workflows compatible with Codex.
+This document defines the CLI directory layout and execution rules for Coherent's edu, pro, and demo environments. It ensures that each variant can be executed and tested using CLI-based workflows compatible with Codex.
 
 ## 2. Directory Structure
 mathlang/

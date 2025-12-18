@@ -1,6 +1,6 @@
-# CausalScript Reasoning Test Plan
+# Coherent Reasoning Test Plan
 
-このプランは、CausalScript が目標としている 3 つの柱
+このプランは、Coherent が目標としている 3 つの柱
 1. 計算ステップの正解/不正解認識
 2. ルール判別および曖昧度推定（Fuzzy 判定）
 3. 因果推論（因果グラフ／エラー解析）
@@ -43,4 +43,4 @@
 2. **ルール判定 / Fuzzy**: 正しいステップに `rule_id` が付き、無効ステップで Fuzzy 判定が実行される。
 3. **因果推論**: ログを CausalEngine に取り込み、`why_error`・`suggest_fix_candidates`・`counterfactual_result` が期待通りに動作する。
 
-このテストプランをベースに、各シナリオに対応するテストの整備状況を定期的に確認することで、CausalScript の推論パイプライン全体が退行していないかを継続的に監視できます。
+このテストプランをベースに、各シナリオに対応するテストの整備状況を定期的に確認することで、Coherent の推論パイプライン全体が退行していないかを継続的に監視できます。

@@ -1,0 +1,62 @@
+- id: ALG-CPLX-DEF-I
+  domain: algebra
+  category: complex_numbers
+  description: "Definition of imaginary unit i^2 = -1"
+  pattern_before: "i**2"
+  pattern_after: "-1"
+  priority: 100
+  condition: ""
+
+- id: ALG-CPLX-ADD
+  domain: algebra
+  category: complex_numbers
+  description: "Complex number addition"
+  pattern_before: "(a + b*i) + (c + d*i)"
+  pattern_after: "(a + c) + (b + d)*i"
+  priority: 90
+  condition: "is_numeric(a) and is_numeric(b) and is_numeric(c) and is_numeric(d)"
+
+- id: ALG-CPLX-SUB
+  domain: algebra
+  category: complex_numbers
+  description: "Complex number subtraction"
+  pattern_before: "(a + b*i) - (c + d*i)"
+  pattern_after: "(a - c) + (b - d)*i"
+  priority: 90
+  condition: "is_numeric(a) and is_numeric(b) and is_numeric(c) and is_numeric(d)"
+
+- id: ALG-CPLX-MUL
+  domain: algebra
+  category: complex_numbers
+  description: "Complex number multiplication"
+  pattern_before: "(a + b*i) * (c + d*i)"
+  pattern_after: "(a*c - b*d) + (a*d + b*c)*i"
+  priority: 85
+  condition: "is_numeric(a) and is_numeric(b) and is_numeric(c) and is_numeric(d)"
+
+- id: ALG-CPLX-CONJ
+  domain: algebra
+  category: complex_numbers
+  description: "Complex conjugate"
+  pattern_before: "conjugate(a + b*i)"
+  pattern_after: "a - b*i"
+  priority: 95
+  condition: ""
+
+- id: ALG-CPLX-ABS
+  domain: algebra
+  category: complex_numbers
+  description: "Modulus of complex number"
+  pattern_before: "Abs(a + b*i)"
+  pattern_after: "sqrt(a**2 + b**2)"
+  priority: 95
+  condition: ""
+
+- id: ALG-CPLX-DIV
+  domain: algebra
+  category: complex_numbers
+  description: "Complex number division (rationalization)"
+  pattern_before: "(a + b*i) / (c + d*i)"
+  pattern_after: "((a*c + b*d) + (b*c - a*d)*i) / (c**2 + d**2)"
+  priority: 80
+  condition: "is_numeric(a) and is_numeric(b) and is_numeric(c) and is_numeric(d)"

@@ -1,6 +1,6 @@
 import pytest
-from causalscript.core.modules.calculus.parser import CalculusParser
-from causalscript.core.modules.calculus.engine import CalculusEngine
+from coherent.engine.modules.calculus.parser import CalculusParser
+from coherent.engine.modules.calculus.engine import CalculusEngine
 
 def test_calculus_parser_normalization():
     parser = CalculusParser()

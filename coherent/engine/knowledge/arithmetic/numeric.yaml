@@ -1,0 +1,44 @@
+- id: ARITH-CALC-ADD
+  domain: arithmetic
+  category: calculation
+  pattern_before: "a + b"
+  pattern_after: "c"
+  description: "数値の加算"
+  priority: 110
+  condition: "is_numeric(a) and is_numeric(b)"
+
+- id: ARITH-CALC-SUB
+  domain: arithmetic
+  category: calculation
+  pattern_before: "a - b"
+  pattern_after: "c"
+  description: "数値の減算"
+  priority: 110
+  condition: "is_numeric(a) and is_numeric(b)"
+
+- id: ARITH-CALC-POW
+  domain: arithmetic
+  category: calculation
+  pattern_before: "a**b"
+  pattern_after: "c"
+  description: "べき乗の計算"
+  priority: 110
+  condition: "is_numeric(a) and is_numeric(b)"
+
+- id: ARITH-CALC-MUL
+  domain: arithmetic
+  category: calculation
+  pattern_before: "a * b"
+  pattern_after: "c"
+  description: "数値の乗算"
+  priority: 110
+  condition: "is_numeric(a) and is_numeric(b)"
+
+- id: ARITH-CALC-DONE
+  domain: arithmetic
+  category: calculation
+  pattern_before: "a"
+  pattern_after: "a"
+  description: "計算完了"
+  priority: 100
+  condition: "is_numeric(a)"

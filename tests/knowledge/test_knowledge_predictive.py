@@ -2,15 +2,15 @@ import unittest
 import pytest
 pytest.importorskip("sympy")
 from pathlib import Path
-from causalscript.core.knowledge_registry import KnowledgeRegistry
-from causalscript.core.symbolic_engine import SymbolicEngine
+from coherent.engine.knowledge_registry import KnowledgeRegistry
+from coherent.engine.symbolic_engine import SymbolicEngine
 
 class TestKnowledgePredictive(unittest.TestCase):
     def setUp(self):
         self.engine = SymbolicEngine()
-        base_path = Path("causalscript/core/knowledge")
+        base_path = Path("coherent/engine/knowledge")
         if not base_path.exists():
-             base_path = Path("../causalscript/core/knowledge")
+             base_path = Path("../coherent/engine/knowledge")
         self.registry = KnowledgeRegistry(base_path, self.engine)
 
     def test_match_rules_arithmetic(self):

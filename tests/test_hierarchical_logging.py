@@ -4,21 +4,21 @@ import pytest
 sympy = pytest.importorskip("sympy")
 import logging
 from pathlib import Path
-from causalscript.core.symbolic_engine import SymbolicEngine
-from causalscript.core.computation_engine import ComputationEngine
-from causalscript.core.validation_engine import ValidationEngine
-from causalscript.core.hint_engine import HintEngine
-from causalscript.core.core_runtime import CoreRuntime
-from causalscript.core.parser import Parser
-from causalscript.core.evaluator import Evaluator
-from causalscript.core.learning_logger import LearningLogger
-from causalscript.core.knowledge_registry import KnowledgeRegistry
+from coherent.engine.symbolic_engine import SymbolicEngine
+from coherent.engine.computation_engine import ComputationEngine
+from coherent.engine.validation_engine import ValidationEngine
+from coherent.engine.hint_engine import HintEngine
+from coherent.engine.core_runtime import CoreRuntime
+from coherent.engine.parser import Parser
+from coherent.engine.evaluator import Evaluator
+from coherent.engine.learning_logger import LearningLogger
+from coherent.engine.knowledge_registry import KnowledgeRegistry
 
 class TestHierarchicalLogging(unittest.TestCase):
     def setUp(self):
         self.sym_engine = SymbolicEngine()
         # Point to real knowledge path
-        self.knowledge_path = Path(os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "causalscript", "core", "knowledge")))
+        self.knowledge_path = Path(os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "coherent", "engine", "knowledge")))
         self.registry = KnowledgeRegistry(self.knowledge_path, self.sym_engine)
         
         self.comp_engine = ComputationEngine(self.sym_engine)

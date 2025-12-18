@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import sys
 
-from causalscript.edu.cli import main as edu_main
+from coherent.edu.cli import main as edu_main
 
 
 def main(argv: list[str] | None = None) -> int:

@@ -1,7 +1,7 @@
 import pytest
-from causalscript.core.core_runtime import CoreRuntime
-from causalscript.core.computation_engine import ComputationEngine
-from causalscript.core.symbolic_engine import SymbolicEngine
+from coherent.engine.core_runtime import CoreRuntime
+from coherent.engine.computation_engine import ComputationEngine
+from coherent.engine.symbolic_engine import SymbolicEngine
 
 @pytest.fixture
 def runtime():

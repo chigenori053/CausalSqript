@@ -1,8 +1,8 @@
 
 import pytest
 pytest.importorskip("sympy")
-from causalscript.core.causal import CausalEngine
-from causalscript.core.causal.causal_types import CausalNodeType
+from coherent.logic import CausalEngine
+from coherent.logic.causal_types import CausalNodeType
 
 def records_freshman_dream():
     # Scenario: User incorrectly expands (x+y)^2 -> x^2 + y^2

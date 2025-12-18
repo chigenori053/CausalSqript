@@ -2,12 +2,12 @@
 import pytest
 pytest.importorskip("sympy")
 from pathlib import Path
-from causalscript.core.symbolic_engine import SymbolicEngine
-from causalscript.core.knowledge_registry import KnowledgeRegistry
+from coherent.engine.symbolic_engine import SymbolicEngine
+from coherent.engine.knowledge_registry import KnowledgeRegistry
 
 def test_knowledge_concepts_loading():
     # Setup
-    base_path = Path("causalscript/core/knowledge")
+    base_path = Path("coherent/engine/knowledge")
     engine = SymbolicEngine()
     registry = KnowledgeRegistry(base_path, engine)
     
@@ -43,7 +43,7 @@ def test_causal_engine_produces_concept_payload():
     # but CausalEngine requires complex setup. 
     # We can check if KnowledgeNode.to_metadata() includes concept.
     
-    base_path = Path("causalscript/core/knowledge")
+    base_path = Path("coherent/engine/knowledge")
     engine = SymbolicEngine()
     registry = KnowledgeRegistry(base_path, engine)
     node = registry.rules_by_id.get("CALC-DIFF-POW")

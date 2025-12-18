@@ -5,10 +5,10 @@ import os
 # Add project root to path
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
 
-from causalscript.core.parser import Parser
-from causalscript.core.evaluator import Evaluator, SymbolicEvaluationEngine
-from causalscript.core.symbolic_engine import SymbolicEngine
-from causalscript.core.learning_logger import LearningLogger
+from coherent.engine.parser import Parser
+from coherent.engine.evaluator import Evaluator, SymbolicEvaluationEngine
+from coherent.engine.symbolic_engine import SymbolicEngine
+from coherent.engine.learning_logger import LearningLogger
 
 def test_system_of_equations_flow():
     script = """

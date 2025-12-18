@@ -1,7 +1,7 @@
 import math
 import pytest
 
-from causalscript.core.trig_engine import TrigHelper
+from coherent.engine.trig_engine import TrigHelper
 
 
 def test_trig_unit_circle():

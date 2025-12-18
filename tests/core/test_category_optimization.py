@@ -1,9 +1,9 @@
 
 import unittest
-from causalscript.core.category_analyzer import CategoryAnalyzer
-from causalscript.core.math_category import MathCategory
-from causalscript.core.computation_engine import ComputationEngine
-from causalscript.core.symbolic_engine import SymbolicEngine
+from coherent.engine.category_analyzer import CategoryAnalyzer
+from coherent.engine.math_category import MathCategory
+from coherent.engine.computation_engine import ComputationEngine
+from coherent.engine.symbolic_engine import SymbolicEngine
 
 class TestCategoryOptimization(unittest.TestCase):
     def setUp(self):

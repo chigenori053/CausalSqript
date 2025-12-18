@@ -1,6 +1,6 @@
 import pytest
-from causalscript.core.symbolic_engine import SymbolicEngine
-from causalscript.core.unit_engine import UnitEngine
+from coherent.engine.symbolic_engine import SymbolicEngine
+from coherent.engine.unit_engine import UnitEngine
 
 @pytest.fixture
 def unit_engine():

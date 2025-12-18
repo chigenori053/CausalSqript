@@ -1,4 +1,4 @@
-# CausalScript Task Management Sheet v2.3
+# Coherent Task Management Sheet v2.3
 ## フォーカス: Core Extended (Computation / Validation / Hinting) 実装
 
 ---
@@ -56,5 +56,5 @@
 
 ## 開発状況サマリー
 - **完了済み**: DSL v2.5 対応、Evaluator v2、LearningLogger v2、CausalEngine v1、CLI 基本実装 (v2.2 までの主要タスク)
-- **現在**: `CausalScript_Core_Extended_Spec.md` に基づく Core 機能の拡張フェーズ。計算・検証・ヒント生成機能の追加を行い、教育利用におけるフィードバック機能を強化する。
+- **現在**: `Coherent_Core_Extended_Spec.md` に基づく Core 機能の拡張フェーズ。計算・検証・ヒント生成機能の追加を行い、教育利用におけるフィードバック機能を強化する。
 - **次ステップ**: `ComputationEngine` から順次実装を開始し、`CoreRuntime` で統合する。

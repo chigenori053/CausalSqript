@@ -2,11 +2,11 @@
   "scenarios": {
     "minimal": {
       "description": "Smallest possible scenario for CI smoke tests.",
-      "file": "demo/scenarios/minimal.mlang"
+      "file": "demo/scenarios/minimal.coh"
     },
     "edu_counterfactual": {
       "description": "Reuse the edu counterfactual demo scenario",
-      "file": "edu/examples/counterfactual_demo.mlang",
+      "file": "edu/examples/counterfactual_demo.coh",
       "mode": "symbolic",
       "counterfactual": {
         "phase": "step",

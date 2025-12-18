@@ -1,4 +1,4 @@
-# CausalScript Core — SymbolicEvaluationEngine 修正仕様書（Codex対応版）
+# Coherent Core — SymbolicEvaluationEngine 修正仕様書（Codex対応版）
 
 Version: 1.0  
 Status: Implementation Directive  

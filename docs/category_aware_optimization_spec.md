@@ -1,6 +1,6 @@
 # Implementation Directive: Category-Aware Optimization (Knowledge & Rendering)
 **Status**: Draft
-**Target**: CausalScript Core Architecture
+**Target**: Coherent Core Architecture
 
 ## Goal
 Leverage `MathCategory` to optimize `KnowledgeRegistry` search efficiency and enhance `LogFormatter` expressiveness.

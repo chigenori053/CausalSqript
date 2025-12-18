@@ -1,13 +1,13 @@
-# CausalScript UI Directory Specification (edu / pro)
+# Coherent UI Directory Specification (edu / pro)
 Version: 0.1  
 Status: Draft  
-Target: Codex / CausalScript Dev Environment  
+Target: Codex / Coherent Dev Environment  
 
 ---
 
 ## 1. Purpose
 
-This document defines the directory layout for **CausalScript UI modules**:
+This document defines the directory layout for **Coherent UI modules**:
 
 - `edu/` : Education-focused UI (students / teachers)
 - `pro/` : Research-focused UI (R&D / researchers)
@@ -105,7 +105,7 @@ edu_<topic>.ipynb
 
 Examples:
 
-edu_intro.ipynb — overview demo of CausalScript for education
+edu_intro.ipynb — overview demo of Coherent for education
 
 edu_arithmetic_steps.ipynb — step-by-step arithmetic explanation
 
@@ -406,9 +406,9 @@ docs/demo/counterfactual_walkthrough.md
 
 docs/demo/edu_walkthrough.md (optional)
 
-docs/spec/CausalScript_Core_Spec.md
+docs/spec/Coherent_Core_Spec.md
 
-docs/spec/CausalScript_CausalEngine_Spec.md
+docs/spec/Coherent_CausalEngine_Spec.md
 
 6. Coding / Naming Guidelines
 Python modules:

@@ -1,8 +1,8 @@
-# CausalScript Integrated Architecture Specification  
+# Coherent Integrated Architecture Specification  
 **Version: v0.0 (Codex-Ready Edition)**  
 **Status: Draft / Full Specification**
 
-本仕様書は、CausalScript 言語および計算エンジンのコアアーキテクチャを  
+本仕様書は、Coherent 言語および計算エンジンのコアアーキテクチャを  
 Codex・LLM・AI エージェントが **正確に解析・実装できる形式**で記述した統合仕様書である。
 
 ---
@@ -11,7 +11,7 @@ Codex・LLM・AI エージェントが **正確に解析・実装できる形式
 
 | 用語 | 意味 |
 |------|------|
-| DSL | CausalScript の記述言語 |
+| DSL | Coherent の記述言語 |
 | AST | 抽象構文木 |
 | Evaluator | AST を逐次解釈し Engine に指示するモジュール |
 | Engine | 数式状態とルール適用を管理 |
@@ -24,7 +24,7 @@ Codex・LLM・AI エージェントが **正確に解析・実装できる形式
 
 # 1. System Overview（システム概要）
 
-CausalScript は以下の8つのコンポーネントから構成される。
+Coherent は以下の8つのコンポーネントから構成される。
 
 1. **DSL Parser**
 2. **AST Nodes**

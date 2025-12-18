@@ -1,6 +1,6 @@
 
 import pytest
-from causalscript.core.multimodal.text_encoder import TransformerEncoder
+from coherent.engine.multimodal.text_encoder import TransformerEncoder
 
 def test_text_encoder_initialization():
     encoder = TransformerEncoder()

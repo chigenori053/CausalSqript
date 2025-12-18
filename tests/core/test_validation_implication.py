@@ -1,10 +1,10 @@
 
 import unittest
-from causalscript.core.core_runtime import CoreRuntime
-from causalscript.core.computation_engine import ComputationEngine
-from causalscript.core.symbolic_engine import SymbolicEngine
-from causalscript.core.validation_engine import ValidationEngine
-from causalscript.core.hint_engine import HintEngine
+from coherent.engine.core_runtime import CoreRuntime
+from coherent.engine.computation_engine import ComputationEngine
+from coherent.engine.symbolic_engine import SymbolicEngine
+from coherent.engine.validation_engine import ValidationEngine
+from coherent.engine.hint_engine import HintEngine
 
 class TestSystemImplication(unittest.TestCase):
     def test_implication_check(self):

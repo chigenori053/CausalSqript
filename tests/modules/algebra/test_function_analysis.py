@@ -1,8 +1,8 @@
 import pytest
 sympy = pytest.importorskip("sympy")
-from causalscript.core.symbolic_engine import SymbolicEngine
-from causalscript.core.computation_engine import ComputationEngine
-from causalscript.core.function_analysis import FunctionAnalyzer
+from coherent.engine.symbolic_engine import SymbolicEngine
+from coherent.engine.computation_engine import ComputationEngine
+from coherent.engine.function_analysis import FunctionAnalyzer
 
 
 @pytest.fixture

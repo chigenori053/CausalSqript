@@ -1,17 +1,17 @@
 
 import pytest
 from typing import Optional
-from causalscript.core.core_runtime import CoreRuntime
-from causalscript.core.computation_engine import ComputationEngine
-from causalscript.core.validation_engine import ValidationEngine
-from causalscript.core.hint_engine import HintEngine
-from causalscript.core.symbolic_engine import SymbolicEngine
-from causalscript.core.knowledge_registry import KnowledgeRegistry, KnowledgeNode
-from causalscript.core.evaluator import Evaluator
-from causalscript.core.parser import Parser
-from causalscript.core.learning_logger import LearningLogger
-from causalscript.core.fuzzy.judge import FuzzyJudge
-from causalscript.core.fuzzy.types import FuzzyResult, FuzzyLabel, FuzzyScore
+from coherent.engine.core_runtime import CoreRuntime
+from coherent.engine.computation_engine import ComputationEngine
+from coherent.engine.validation_engine import ValidationEngine
+from coherent.engine.hint_engine import HintEngine
+from coherent.engine.symbolic_engine import SymbolicEngine
+from coherent.engine.knowledge_registry import KnowledgeRegistry, KnowledgeNode
+from coherent.engine.evaluator import Evaluator
+from coherent.engine.parser import Parser
+from coherent.engine.learning_logger import LearningLogger
+from coherent.engine.fuzzy.judge import FuzzyJudge
+from coherent.engine.fuzzy.types import FuzzyResult, FuzzyLabel, FuzzyScore
 
 class StubKnowledgeRegistry(KnowledgeRegistry):
     def __init__(self):

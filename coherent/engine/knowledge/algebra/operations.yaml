@@ -1,0 +1,15 @@
+- id: ALG-OP-001
+  domain: algebra
+  category: operations
+  pattern_before: "a * x + b * x"
+  pattern_after: "(a + b) * x"
+  description: "同類項をまとめる"
+  priority: 65
+
+- id: ALG-OP-002
+  domain: algebra
+  category: operations
+  pattern_before: "x + x"
+  pattern_after: "2 * x"
+  description: "同類項の加算"
+  priority: 65

@@ -1,9 +1,9 @@
 import pytest
 from fractions import Fraction
 
-from causalscript.core.computation_engine import ComputationEngine
-from causalscript.core.symbolic_engine import SymbolicEngine
-from causalscript.core.errors import InvalidExprError
+from coherent.engine.computation_engine import ComputationEngine
+from coherent.engine.symbolic_engine import SymbolicEngine
+from coherent.engine.errors import InvalidExprError
 
 @pytest.fixture
 def engine():

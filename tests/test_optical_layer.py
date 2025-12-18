@@ -1,7 +1,7 @@
 import pytest
 import torch
 import numpy as np
-from causalscript.core.optical.layer import OpticalInterferenceEngine
+from coherent.optical.layer import OpticalInterferenceEngine
 
 def test_optical_layer_initialization():
     layer = OpticalInterferenceEngine(input_dim=10, memory_capacity=5)

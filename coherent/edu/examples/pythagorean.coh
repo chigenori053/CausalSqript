@@ -1,0 +1,30 @@
+meta:
+    id: edu_pythagorean_v25
+    topic: triangles
+config:
+    causal: true
+    fuzzy-threshold: 0.6
+mode: causal
+
+prepare:
+    - a = 2
+    - b = 3
+
+problem: a^2 + b^2
+
+step:
+    before: a^2 + b^2
+    after: 4 + 9
+    note: "Square each leg (a=2, b=3)"
+
+step:
+    before: 4 + 9
+    after: 13
+    note: "Add the squared values"
+
+end: 13
+
+counterfactual:
+    assume:
+        b: 4
+    expect: a^2 + b^2

@@ -3,11 +3,11 @@ from typing import List
 
 import pytest
 
-from causalscript.core.fuzzy.config import FuzzyThresholdConfig
-from causalscript.core.fuzzy.encoder import ExpressionEncoder, MLVector
-from causalscript.core.fuzzy.judge import FuzzyJudge
-from causalscript.core.fuzzy.metric import SimilarityMetric
-from causalscript.core.fuzzy.types import FuzzyLabel, NormalizedExpr
+from coherent.engine.fuzzy.config import FuzzyThresholdConfig
+from coherent.engine.fuzzy.encoder import ExpressionEncoder, MLVector
+from coherent.engine.fuzzy.judge import FuzzyJudge
+from coherent.engine.fuzzy.metric import SimilarityMetric
+from coherent.engine.fuzzy.types import FuzzyLabel, NormalizedExpr
 
 
 def _expr(raw: str) -> NormalizedExpr:

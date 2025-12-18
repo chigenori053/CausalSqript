@@ -1,0 +1,35 @@
+- id: ALG-EQ-MOVE-ADD
+  domain: algebra
+  category: equation
+  description: "Move term to the other side (Subtraction)"
+  pattern_before: "Eq(a + b, c)"
+  pattern_after: "Eq(a, c - b)"
+  priority: 96
+  condition: "is_numeric(b) or (not is_numeric(a) and is_numeric(b))"
+
+- id: ALG-EQ-MOVE-ADD-CONST-FIRST
+  domain: algebra
+  category: equation
+  description: "Move term to the other side (Subtraction)"
+  pattern_before: "Eq(a + b, c)"
+  pattern_after: "Eq(b, c - a)"
+  priority: 96
+  condition: "is_numeric(a) and not is_numeric(b)"
+
+- id: ALG-EQ-DIV-COEFF
+  domain: algebra
+  category: equation
+  description: "Divide by coefficient"
+  pattern_before: "Eq(a * x, b)"
+  pattern_after: "Eq(x, b / a)"
+  priority: 85
+  condition: "is_numeric(a) and x.is_Symbol"
+
+- id: ALG-EQ-MOVE-SUB
+  domain: algebra
+  category: equation
+  description: "Move subtracted term (Addition)"
+  pattern_before: "Eq(a - b, c)"
+  pattern_after: "Eq(a, c + b)"
+  priority: 95
+  condition: "is_numeric(b)"

@@ -1,0 +1,22 @@
+{
+  "scenarios": {
+    "arithmetic": {
+      "description": "Core DSL sample that walks through the Pythagorean problem.",
+      "file": "coherent/edu/examples/pythagorean.coh"
+    },
+    "counterfactual": {
+      "description": "Demonstrates counterfactual editing on the edu demo script.",
+      "file": "coherent/edu/examples/counterfactual_demo.coh",
+      "counterfactual": {
+        "phase": "step",
+        "index": 2,
+        "expression": "8 * scale_factor"
+      }
+    },
+    "polynomial": {
+      "description": "Runs the polynomial arithmetic notebook example with the polynomial evaluator.",
+      "file": "coherent/edu/examples/polynomial_arithmetic.coh",
+      "mode": "polynomial"
+    }
+  }
+}

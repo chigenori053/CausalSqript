@@ -6,8 +6,8 @@ try:
 except ImportError:
     sympy = None
 
-from causalscript.core.symbolic_engine import SymbolicEngine
-from causalscript.core.input_parser import CausalScriptInputParser
+from coherent.engine.symbolic_engine import SymbolicEngine
+from coherent.engine.input_parser import CoherentInputParser
 
 @pytest.fixture
 def engine():
@@ -17,15 +17,15 @@ def engine():
 
 def test_parser_constants():
     # Test pi
-    assert CausalScriptInputParser.normalize("2pi").replace(" ", "") == "2*pi"
-    assert CausalScriptInputParser.normalize("2π").replace(" ", "") == "2*pi"
+    assert CoherentInputParser.normalize("2pi").replace(" ", "") == "2*pi"
+    assert CoherentInputParser.normalize("2π").replace(" ", "") == "2*pi"
     
     # Test e
-    assert CausalScriptInputParser.normalize("e^x").replace(" ", "") == "e**x"
+    assert CoherentInputParser.normalize("e^x").replace(" ", "") == "e**x"
     
     # Test sqrt
-    assert CausalScriptInputParser.normalize("√2").replace(" ", "") == "sqrt(2)"
-    assert CausalScriptInputParser.normalize("sqrt(2)").replace(" ", "") == "sqrt(2)"
+    assert CoherentInputParser.normalize("√2").replace(" ", "") == "sqrt(2)"
+    assert CoherentInputParser.normalize("sqrt(2)").replace(" ", "") == "sqrt(2)"
 
 def test_symbolic_constants(engine):
     # Test pi evaluation

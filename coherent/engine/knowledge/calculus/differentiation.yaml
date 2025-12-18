@@ -1,0 +1,95 @@
+# Differentiation Rules
+
+- id: CALC-DIFF-POW
+  domain: calculus
+  category: calculation
+  pattern_before: "Derivative(x**n, x)"
+  pattern_after: "n * x**(n - 1)"
+  description: "Power Rule for Differentiation"
+  priority: 160
+  concept: "power_rule"
+
+- id: CALC-DIFF-SUM
+  domain: calculus
+  category: simplification
+  pattern_before: "Derivative(f + g, x)"
+  pattern_after: "Derivative(f, x) + Derivative(g, x)"
+  description: "Sum Rule for Differentiation"
+  priority: 150
+  concept: "sum_rule"
+
+- id: CALC-DIFF-PROD
+  domain: calculus
+  category: calculation
+  pattern_before: "Derivative(f * g, x)"
+  pattern_after: "f * Derivative(g, x) + g * Derivative(f, x)"
+  description: "Product Rule for Differentiation"
+  priority: 150
+  concept: "product_rule"
+
+- id: CALC-DIFF-CONST
+  domain: calculus
+  category: calculation
+  pattern_before: "Derivative(c, x)"
+  pattern_after: "0"
+  description: "Derivative of a constant"
+  priority: 170
+  condition: "is_numeric(c) or (c.is_Symbol and c != x)"
+  concept: "constant_derivative"
+
+- id: CALC-DIFF-CONST-MUL
+  domain: calculus
+  category: simplification
+  pattern_before: "Derivative(c * f, x)"
+  pattern_after: "c * Derivative(f, x)"
+  description: "Constant Multiple Rule for Differentiation"
+  priority: 150
+  condition: "is_numeric(c) or (c.is_Symbol and c != x)"
+  concept: "constant_multiple_rule"
+
+# Trigonometric Derivatives
+- id: CALC-DIFF-SIN
+  domain: calculus
+  category: calculation
+  pattern_before: "Derivative(sin(x), x)"
+  pattern_after: "cos(x)"
+  description: "Derivative of sine"
+  priority: 160
+  concept: "trig_derivative"
+
+- id: CALC-DIFF-COS
+  domain: calculus
+  category: calculation
+  pattern_before: "Derivative(cos(x), x)"
+  pattern_after: "-sin(x)"
+  description: "Derivative of cosine"
+  priority: 160
+  concept: "trig_derivative"
+
+- id: CALC-DIFF-TAN
+  domain: calculus
+  category: calculation
+  pattern_before: "Derivative(tan(x), x)"
+  pattern_after: "sec(x)**2"
+  description: "Derivative of tangent"
+  priority: 160
+  concept: "trig_derivative"
+
+# Exponential and Logarithmic Derivatives
+- id: CALC-DIFF-EXP
+  domain: calculus
+  category: calculation
+  pattern_before: "Derivative(exp(x), x)"
+  pattern_after: "exp(x)"
+  description: "Derivative of exponential function"
+  priority: 160
+  concept: "exp_derivative"
+
+- id: CALC-DIFF-LOG
+  domain: calculus
+  category: calculation
+  pattern_before: "Derivative(log(x), x)"
+  pattern_after: "1/x"
+  description: "Derivative of natural logarithm"
+  priority: 160
+  concept: "log_derivative"

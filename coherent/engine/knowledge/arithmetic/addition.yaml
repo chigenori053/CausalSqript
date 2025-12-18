@@ -1,0 +1,20 @@
+- id: ARITH-ADD-001
+  domain: arithmetic
+  category: addition
+  pattern_before: "a + b"
+  pattern_after: "b + a"
+  description: "加法の可換律: a + b = b + a"
+
+- id: ARITH-ADD-002
+  domain: arithmetic
+  category: addition
+  pattern_before: "(a + b) + c"
+  pattern_after: "a + (b + c)"
+  description: "加法の結合法則"
+
+- id: ARITH-ADD-003
+  domain: arithmetic
+  category: addition
+  pattern_before: "a + 0"
+  pattern_after: "a"
+  description: "加法の単位元"

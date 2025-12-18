@@ -1,9 +1,9 @@
 import pytest
 
-from causalscript.core.parser import Parser
-from causalscript.core import ast_nodes as ast
-from causalscript.core.errors import SyntaxError
-from causalscript.core.ast_nodes import (
+from coherent.engine.parser import Parser
+from coherent.engine import ast_nodes as ast
+from coherent.engine.errors import SyntaxError
+from coherent.engine.ast_nodes import (
     MetaNode,
     ConfigNode,
     ModeNode,

@@ -1,15 +1,15 @@
-# CausalScript DSL v2 Specification (prepare-integrated)
+# Coherent DSL v2 Specification (prepare-integrated)
 
 Version: 2.0  
 Status: Official Draft  
-Audience: Implementers (Codex / GeminiCLI / CausalScript Engine)  
+Audience: Implementers (Codex / GeminiCLI / Coherent Engine)  
 Scope: DSL Grammar, Execution Model, Normalization, AST Interface
 
 ---
 
 # 0. Overview
 
-CausalScript DSL v2 defines a four-phase, strictly ordered execution model:
+Coherent DSL v2 defines a four-phase, strictly ordered execution model:
 
 ```
 problem → prepare → step* → end

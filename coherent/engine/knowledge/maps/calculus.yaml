@@ -1,0 +1,19 @@
+id: calculus
+name: "Calculus"
+description: "Calculus operations (differentiation, integration, limits)."
+priority: 60
+rules:
+  - CALC-DEF-INT
+  - CALC-INT-POWER
+  - CALC-INT-LINEAR
+  - CALC-INT-CONST-VAL
+  - CALC-INT-EVAL
+  - CALC-INT-EVAL-CONST
+  - CALC-INT-POLY
+  - CALC-DIFF-POW
+  - CALC-DIFF-SUM
+  - CALC-DIFF-PROD
+  - CALC-DIFF-CONST
+  - CALC-DIFF-CONST-MULSUM
+  - CALC-INT-CONST-VAL
+  - CALC-BOUNDS-EVAL

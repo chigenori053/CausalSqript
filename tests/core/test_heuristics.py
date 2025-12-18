@@ -1,8 +1,8 @@
 
 import pytest
 pytest.importorskip("sympy")
-from causalscript.core.heuristics import MisusePatternDetector
-from causalscript.core.symbolic_engine import SymbolicEngine
+from coherent.engine.heuristics import MisusePatternDetector
+from coherent.engine.symbolic_engine import SymbolicEngine
 
 @pytest.fixture
 def detector():
@@ -11,7 +11,7 @@ def detector():
 def test_freshmans_dream(detector):
     # (a+b)^n -> a^n + b^n
     assert detector.detect_misuse("(x + y)**2", "x**2 + y**2") == "Freshman's Dream"
-    # Python syntax for power is ** or ^ in CausalScript parser, but detector sees Python string?
+    # Python syntax for power is ** or ^ in Coherent parser, but detector sees Python string?
     # CausalEngine usually ingests parsed steps or string steps. 
     # symbolic_engine.match_structure uses sympy parser which handles ** and ^ if configured.
     # Let's assume standard python/cscript inputs.

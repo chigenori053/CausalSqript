@@ -1,0 +1,18 @@
+id: algebra_basic
+name: "Algebra (Basic)"
+description: "Basic algebra operations (middle school)."
+priority: 90
+rules:
+  - ALG-EXP-001
+  - ALG-EXP-002
+  - ALG-EXP-003
+  - ALG-EXP-004
+  - ALG-POW-001
+  - ALG-POW-002
+  - ALG-POW-FRAC-001
+  - ALG-POW-FRAC-002
+  - ALG-POW-DEF-FRAC
+  - ALG-FAC-001
+  - ALG-FAC-002
+  - ALG-OP-001
+  - ALG-OP-002

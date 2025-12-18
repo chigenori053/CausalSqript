@@ -1,9 +1,9 @@
-from causalscript.core.parser import Parser
-from causalscript.core.polynomial_evaluator import PolynomialEvaluator
-from causalscript.core.learning_logger import LearningLogger
-from causalscript.core.symbolic_engine import SymbolicEngine
-from causalscript.core.fuzzy.types import FuzzyLabel, FuzzyResult, FuzzyScore
-from causalscript.core.fuzzy.types import FuzzyLabel, FuzzyResult, FuzzyScore
+from coherent.engine.parser import Parser
+from coherent.engine.polynomial_evaluator import PolynomialEvaluator
+from coherent.engine.learning_logger import LearningLogger
+from coherent.engine.symbolic_engine import SymbolicEngine
+from coherent.engine.fuzzy.types import FuzzyLabel, FuzzyResult, FuzzyScore
+from coherent.engine.fuzzy.types import FuzzyLabel, FuzzyResult, FuzzyScore
 
 
 def _normalizer():

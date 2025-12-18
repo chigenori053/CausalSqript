@@ -1,14 +1,14 @@
 import pytest
-from causalscript.core.validation_engine import ValidationEngine
-from causalscript.core.computation_engine import ComputationEngine
-from causalscript.core.symbolic_engine import SymbolicEngine
-from causalscript.core.fuzzy.judge import FuzzyJudge
-from causalscript.core.causal.causal_engine import CausalEngine
-from causalscript.core.decision_theory import DecisionEngine, DecisionConfig, DecisionAction
-from causalscript.core.fuzzy.encoder import ExpressionEncoder
-from causalscript.core.fuzzy.metric import SimilarityMetric
-from causalscript.core.fuzzy.types import FuzzyResult, FuzzyScore, FuzzyLabel
-from causalscript.core.knowledge_registry import KnowledgeRegistry
+from coherent.engine.validation_engine import ValidationEngine
+from coherent.engine.computation_engine import ComputationEngine
+from coherent.engine.symbolic_engine import SymbolicEngine
+from coherent.engine.fuzzy.judge import FuzzyJudge
+from coherent.logic.causal_engine import CausalEngine
+from coherent.engine.decision_theory import DecisionEngine, DecisionConfig, DecisionAction
+from coherent.engine.fuzzy.encoder import ExpressionEncoder
+from coherent.engine.fuzzy.metric import SimilarityMetric
+from coherent.engine.fuzzy.types import FuzzyResult, FuzzyScore, FuzzyLabel
+from coherent.engine.knowledge_registry import KnowledgeRegistry
 from unittest.mock import MagicMock
 
 @pytest.fixture

@@ -1,10 +1,10 @@
-# CausalScript Core DSL v2.5 Specification
+# Coherent Core DSL v2.5 Specification
 Version: 2.5
 Status: Draft
-Target: Codex / CausalScript Core Engine
+Target: Codex / Coherent Core Engine
 
 ## 1. Purpose
-This document defines the **Core DSL v2.5** used by CausalScript to describe:
+This document defines the **Core DSL v2.5** used by Coherent to describe:
 - mathematical problems
 - step-by-step reasoning
 - causal analysis
@@ -25,7 +25,7 @@ This specification is fully machine-readable and suitable for Codex-based toolin
 ---
 
 ## 2. File Format
-CausalScript Core DSL files use UTF-8 text with the extension:
+Coherent Core DSL files use UTF-8 text with the extension:
 ```
 .mlang
 ```
@@ -207,7 +207,7 @@ Fields:
 ## 5. AST Mapping Rules
 
 ### Expressions
-Parsed using CausalScript Expression Grammar:
+Parsed using Coherent Expression Grammar:
 
 ```
 Expr := Term (("+"|"-") Term)*

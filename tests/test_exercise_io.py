@@ -2,7 +2,7 @@ import pytest
 import json
 import yaml
 from pathlib import Path
-from causalscript.core.exercise_spec import ExerciseSpec, load_exercise_spec, save_exercise_spec
+from coherent.engine.exercise_spec import ExerciseSpec, load_exercise_spec, save_exercise_spec
 
 @pytest.fixture
 def sample_spec():

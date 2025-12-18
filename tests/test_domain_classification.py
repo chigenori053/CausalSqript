@@ -1,14 +1,14 @@
 import pytest
 sympy = pytest.importorskip("sympy")
 from pathlib import Path
-from causalscript.core.symbolic_engine import SymbolicEngine
-from causalscript.core.knowledge_registry import KnowledgeRegistry
-from causalscript.core.classifier import ExpressionClassifier
+from coherent.engine.symbolic_engine import SymbolicEngine
+from coherent.engine.knowledge_registry import KnowledgeRegistry
+from coherent.engine.classifier import ExpressionClassifier
 
 class TestDomainClassification:
     def setup_method(self):
         self.engine = SymbolicEngine()
-        self.registry = KnowledgeRegistry(Path("causalscript/core/knowledge"), self.engine)
+        self.registry = KnowledgeRegistry(Path("coherent/engine/knowledge"), self.engine)
         self.classifier = ExpressionClassifier(self.engine)
 
     def test_classify_arithmetic(self):
@@ -51,7 +51,7 @@ class TestDomainClassification:
 
     def test_evaluator_integration(self):
         # Verify that SymbolicEvaluationEngine uses the classifier
-        from causalscript.core.evaluator import SymbolicEvaluationEngine
+        from coherent.engine.evaluator import SymbolicEvaluationEngine
         
         engine = SymbolicEvaluationEngine(self.engine, self.registry)
         engine.set("x + x")

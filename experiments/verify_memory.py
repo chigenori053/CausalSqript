@@ -1,5 +1,5 @@
 """
-Verification Script for CausalScript Memory Module.
+Verification Script for Coherent Memory Module.
 Compares Global Search vs Scoped Search.
 """
 
@@ -10,16 +10,16 @@ from pathlib import Path
 # Add project root to path
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
-from causalscript.core.memory.management import ingest_all_rules
-from causalscript.core.knowledge_registry import KnowledgeRegistry
-from causalscript.core.symbolic_engine import SymbolicEngine
-from causalscript.core.memory import get_vector_store
+from coherent.memory.management import ingest_all_rules
+from coherent.engine.knowledge_registry import KnowledgeRegistry
+from coherent.engine.symbolic_engine import SymbolicEngine
+from coherent.memory import get_vector_store
 
 def setup():
     print(">>> Setting up Knowledge Registry...")
     engine = SymbolicEngine()
-    # Assuming knowledge files are in causalscript/core/knowledge
-    knowledge_path = Path("causalscript/core/knowledge")
+    # Assuming knowledge files are in coherent/engine/knowledge
+    knowledge_path = Path("coherent/engine/knowledge")
     registry = KnowledgeRegistry(base_path=knowledge_path, engine=engine)
     
     print(f"Loaded {len(registry.nodes)} rules from {knowledge_path}")

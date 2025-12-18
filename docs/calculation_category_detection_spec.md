@@ -1,6 +1,6 @@
 # Implementation Directive: Calculation Category Detection & Engine Dispatching
 **Status**: Draft
-**Target**: CausalScript Core Architecture
+**Target**: Coherent Core Architecture
 
 ## Goal
 Automatically detect the mathematical category (Algebra, Geometry, Calculus, etc.) from an input expression and dispatch processing to the optimal calculation engine.
@@ -26,7 +26,7 @@ Implement a class that determines `MathCategory` based on tokens and keywords.
 ```python
 from enum import Enum
 from typing import Set
-from core.input_parser import CausalScriptInputParser
+from core.input_parser import CoherentInputParser
 from core.math_category import MathCategory
 
 class CategoryAnalyzer:
@@ -44,10 +44,10 @@ class CategoryAnalyzer:
     def detect(expr: str) -> MathCategory:
         try:
             # Reuse existing tokenizer for consistency
-            # Note: CausalScriptInputParser might need to be imported or we use a simple split/regex if dependency is heavy
+            # Note: CoherentInputParser might need to be imported or we use a simple split/regex if dependency is heavy
             # For now, assuming we can access tokens.
-            # If CausalScriptInputParser is complex, we can use a simpler tokenizer or regex.
-            tokens = set(CausalScriptInputParser.tokenize(expr))
+            # If CoherentInputParser is complex, we can use a simpler tokenizer or regex.
+            tokens = set(CoherentInputParser.tokenize(expr))
         except Exception:
             # Fallback for simple strings
             tokens = set(expr.replace("(", " ").replace(")", " ").replace(",", " ").split())

@@ -1,14 +1,14 @@
 import pytest
 sympy = pytest.importorskip("sympy")
-from causalscript.core.symbolic_engine import SymbolicEngine
-from causalscript.core.knowledge_registry import KnowledgeRegistry
+from coherent.engine.symbolic_engine import SymbolicEngine
+from coherent.engine.knowledge_registry import KnowledgeRegistry
 from pathlib import Path
 
 @pytest.fixture
 def registry():
     engine = SymbolicEngine()
     # Fix path
-    base_path = Path("causalscript/core/knowledge")
+    base_path = Path("coherent/engine/knowledge")
     return KnowledgeRegistry(base_path, engine)
 
 def test_strict_matching_integral_vs_add(registry):

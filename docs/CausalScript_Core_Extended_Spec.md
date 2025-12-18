@@ -1,11 +1,11 @@
-# CausalScript Core Architecture Extension Specification (Computation / Validation / Hinting)
+# Coherent Core Architecture Extension Specification (Computation / Validation / Hinting)
 
 ## Overview
-This document defines the official updated specification for integrating Computation, Answer Validation, and Hint Generation into CausalScript Core Architecture. It is formatted for compatibility with Codex, Gemini, and other LLM-based code agents.
+This document defines the official updated specification for integrating Computation, Answer Validation, and Hint Generation into Coherent Core Architecture. It is formatted for compatibility with Codex, Gemini, and other LLM-based code agents.
 
 ## 1. Architecture Structure
 ```
-CausalScript Source (.mlang)
+Coherent Source (.mlang)
     ↓ Parser
 AST (Program)
     ↓ Evaluator

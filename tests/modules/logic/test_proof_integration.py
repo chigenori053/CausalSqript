@@ -1,6 +1,6 @@
 import pytest
-from causalscript.core.geometry_engine import GeometryEngine
-from causalscript.core.proof_engine import Fact
+from coherent.engine.geometry_engine import GeometryEngine
+from coherent.engine.proof_engine import Fact
 
 def test_geometry_proof_integration():
     try:

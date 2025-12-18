@@ -1,0 +1,6 @@
+- id: ARITH-DIV-001
+  domain: arithmetic
+  category: division
+  pattern_before: "a / 1"
+  pattern_after: "a"
+  description: "割り算の単位元"

@@ -7,16 +7,16 @@ from pathlib import Path
 # Add project root to path
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
 
-from causalscript.core.symbolic_engine import SymbolicEngine
-from causalscript.core.knowledge_registry import KnowledgeRegistry
+from coherent.engine.symbolic_engine import SymbolicEngine
+from coherent.engine.knowledge_registry import KnowledgeRegistry
 
 def test_knowledge_matching():
     print("Initializing engines...")
     engine = SymbolicEngine()
     
-    # Point to the knowledge root directory: ../../../causalscript/core/knowledge
+    # Point to the knowledge root directory: ../../../coherent/engine/knowledge
     # Current file: tests/knowledge/test_knowledge_matching.py
-    knowledge_path = Path(os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "..", "causalscript", "core", "knowledge")))
+    knowledge_path = Path(os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "..", "coherent", "engine", "knowledge")))
     registry = KnowledgeRegistry(knowledge_path, engine)
     
     print(f"Loaded {len(registry.nodes)} rules.")

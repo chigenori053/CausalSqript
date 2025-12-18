@@ -1,0 +1,29 @@
+meta:
+    id: edu_cf_demo
+    topic: counterfactual
+config:
+    causal: true
+mode: causal
+
+prepare:
+    - base_sum = 3 + 5
+    - scale_factor = 4
+
+problem: base_sum * scale_factor
+
+step:
+    before: base_sum * scale_factor
+    after: 8 * scale_factor
+    note: "Simplify the addition first"
+
+step:
+    before: 8 * scale_factor
+    after: 32 * scale_factor
+    note: "Mistakenly multiplied the factor twice"
+
+end: 32
+
+counterfactual:
+    assume:
+        scale_factor: 5
+    expect: base_sum * scale_factor

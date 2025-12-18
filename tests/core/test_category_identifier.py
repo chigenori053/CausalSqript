@@ -1,6 +1,6 @@
 import pytest
-from causalscript.core.category_identifier import CategoryIdentifier, MathCategory, CategoryResult
-from causalscript.core.symbolic_engine import SymbolicEngine
+from coherent.engine.category_identifier import CategoryIdentifier, MathCategory, CategoryResult
+from coherent.engine.symbolic_engine import SymbolicEngine
 
 @pytest.fixture
 def identifier():

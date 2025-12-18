@@ -1,11 +1,11 @@
 
 import pytest
 from unittest.mock import MagicMock, patch
-from causalscript.core.reasoning.agent import ReasoningAgent
+from coherent.engine.reasoning.agent import ReasoningAgent
 
 # Patch where imported
-@patch("causalscript.core.reasoning.agent.ChromaVectorStore")
-@patch("causalscript.core.multimodal.integrator.TransformerEncoder") 
+@patch("coherent.engine.reasoning.agent.ChromaVectorStore")
+@patch("coherent.engine.multimodal.integrator.TransformerEncoder") 
 def test_recall_first_behavior(MockEncoder, MockStore):
     # Setup Mocks
     mock_store_instance = MockStore.return_value

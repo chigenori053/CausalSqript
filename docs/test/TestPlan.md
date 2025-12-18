@@ -1,8 +1,8 @@
-# CausalScript テスト計画書
+# Coherent テスト計画書
 
 ## 1. 目的
 
-本計画は、CausalScriptのデモ版リリースに向けて、新たに追加される機能の品質を保証することを目的とします。
+本計画は、Coherentのデモ版リリースに向けて、新たに追加される機能の品質を保証することを目的とします。
 `docs/task_management_sheet.md` のタスクに基づき、特に以下の項目に焦点を当てます。
 
 - **P2-05: 多項式四則演習スクリプト**: `PolynomialEvaluator` と CLI `--polynomial` による多項式演算機能の品質保証。

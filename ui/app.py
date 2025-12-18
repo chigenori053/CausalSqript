@@ -1,5 +1,5 @@
 """
-CausalScript Streamlit UI - Test Interface
+Coherent Streamlit UI - Test Interface
 """
 
 import streamlit as st
@@ -12,31 +12,31 @@ from pathlib import Path
 # Add project root to path
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
 
-from causalscript.core.symbolic_engine import SymbolicEngine
-from causalscript.core.computation_engine import ComputationEngine
-from causalscript.core.validation_engine import ValidationEngine
-from causalscript.core.hint_engine import HintEngine
-from causalscript.core.core_runtime import CoreRuntime
-from causalscript.core.latex_formatter import LaTeXFormatter
-from causalscript.core.parser import Parser
-from causalscript.core.evaluator import Evaluator
-from causalscript.core.learning_logger import LearningLogger
-from causalscript.core.errors import CausalScriptError
-from causalscript.core.fuzzy.judge import FuzzyJudge
-from causalscript.core.fuzzy.encoder import ExpressionEncoder
-from causalscript.core.fuzzy.metric import SimilarityMetric
-from causalscript.core.unit_engine import get_common_units
-from causalscript.core.decision_theory import DecisionConfig
-from causalscript.core.hint_engine import HintPersona
-from causalscript.core.knowledge_registry import KnowledgeRegistry
-from causalscript.core.tensor.engine import TensorLogicEngine
-from causalscript.core.tensor.converter import TensorConverter
-from causalscript.core.tensor.embeddings import EmbeddingRegistry
-from causalscript.core.reasoning.agent import ReasoningAgent
+from coherent.engine.symbolic_engine import SymbolicEngine
+from coherent.engine.computation_engine import ComputationEngine
+from coherent.engine.validation_engine import ValidationEngine
+from coherent.engine.hint_engine import HintEngine
+from coherent.engine.core_runtime import CoreRuntime
+from coherent.engine.latex_formatter import LaTeXFormatter
+from coherent.engine.parser import Parser
+from coherent.engine.evaluator import Evaluator
+from coherent.engine.learning_logger import LearningLogger
+from coherent.engine.errors import CoherentError
+from coherent.engine.fuzzy.judge import FuzzyJudge
+from coherent.engine.fuzzy.encoder import ExpressionEncoder
+from coherent.engine.fuzzy.metric import SimilarityMetric
+from coherent.engine.unit_engine import get_common_units
+from coherent.engine.decision_theory import DecisionConfig
+from coherent.engine.hint_engine import HintPersona
+from coherent.engine.knowledge_registry import KnowledgeRegistry
+from coherent.engine.tensor.engine import TensorLogicEngine
+from coherent.engine.tensor.converter import TensorConverter
+from coherent.engine.tensor.embeddings import EmbeddingRegistry
+from coherent.engine.reasoning.agent import ReasoningAgent
 
 # Page Config
 st.set_page_config(
-    page_title="CausalScript Logic Tester",
+    page_title="Coherent Logic Tester",
     layout="wide",
     initial_sidebar_state="expanded"
 )
@@ -57,17 +57,17 @@ def get_base_engines():
     
     # Initialize Knowledge Registry
     # Point to the knowledge root directory
-    knowledge_path = Path(os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "core", "knowledge")))
+    knowledge_path = Path(os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "coherent", "engine", "knowledge")))
     knowledge_path.mkdir(parents=True, exist_ok=True)
     knowledge_registry = KnowledgeRegistry(knowledge_path, sym_engine)
     
     # Initialize Classifier and Formatter
-    from causalscript.core.classifier import ExpressionClassifier
+    from coherent.engine.classifier import ExpressionClassifier
     classifier = ExpressionClassifier(sym_engine)
     formatter = LaTeXFormatter(sym_engine, classifier)
     
     # Initialize Reasoning Agent
-    from causalscript.core.reasoning.agent import ReasoningAgent
+    from coherent.engine.reasoning.agent import ReasoningAgent
     # We need a dummy runtime or similar, but ReasoningAgent takes runtime.
     # Actually ReasoningAgent needs runtime to access engines.
     # Let's create it inside the main execution loop where runtime exists, 
@@ -199,7 +199,7 @@ def render_test_report(step_index, step_data, key_prefix):
 
 # --- Layout ---
 
-st.title("🧪 CausalScript Logic Tester")
+st.title("🧪 Coherent Logic Tester")
 st.markdown("""
 This interface is designed to test:
 1.  **Formula Recognition**: Problem -> Step -> End flow.
@@ -249,14 +249,14 @@ with st.sidebar:
                 # Minimal runtime for agent
                 # We need validation/hint engines even if unused by agent directly
                 # (Agent takes runtime, which expects them)
-                from causalscript.core.validation_engine import ValidationEngine as VE
-                from causalscript.core.hint_engine import HintEngine as HE
+                from coherent.engine.validation_engine import ValidationEngine as VE
+                from coherent.engine.hint_engine import HintEngine as HE
                 
                 ve = VE(comp) 
                 he = HE(comp)
                 
                 # We need a dummy logger
-                from causalscript.core.learning_logger import LearningLogger
+                from coherent.engine.learning_logger import LearningLogger
                 
                 # Lazy import runtime to avoid circular issues if any? 
                 # (Already imported at top)
@@ -291,9 +291,9 @@ with st.sidebar:
                 try:
                     comp, registry, _, t_engine, t_conv = get_base_engines()
                     
-                    from causalscript.core.validation_engine import ValidationEngine as VE
-                    from causalscript.core.hint_engine import HintEngine as HE
-                    from causalscript.core.learning_logger import LearningLogger
+                    from coherent.engine.validation_engine import ValidationEngine as VE
+                    from coherent.engine.hint_engine import HintEngine as HE
+                    from coherent.engine.learning_logger import LearningLogger
 
                     ve = VE(comp) 
                     he = HE(comp)
@@ -376,7 +376,7 @@ step: x^2 - 2xy - 2yx + 4y^2
 step: x^2 - 4xy + 4y^2
 end: x^2 - 4xy + 4y^2"""
         
-        user_input = st.text_area("Script", height=400, value=default_script, help="Type your CausalScript here.")
+        user_input = st.text_area("Script", height=400, value=default_script, help="Type your Coherent here.")
         
         submitted = st.form_submit_button("Run Test", type="primary")
         
@@ -385,7 +385,7 @@ end: x^2 - 4xy + 4y^2"""
             st.session_state.logs = []
             
             # --- Dynamic Engine Initialization (Per Run) ---
-            from causalscript.core.decision_theory import DecisionEngine, DecisionConfig
+            from coherent.engine.decision_theory import DecisionEngine, DecisionConfig
             
             # 1. Configure Decision Theory & Fuzzy Judge
             decision_config = DecisionConfig(strategy=strategy_name)

@@ -1,13 +1,13 @@
 import pytest
 sympy = pytest.importorskip("sympy")
-from causalscript.core.input_parser import CausalScriptInputParser
-from causalscript.core.symbolic_engine import SymbolicEngine
+from coherent.engine.input_parser import CoherentInputParser
+from coherent.engine.symbolic_engine import SymbolicEngine
 
 class TestIntegralSteps:
     def test_brackets_parsing(self):
         # [x^3]_0^2 -> (Subs(x**3, x, 2) - Subs(x**3, x, 0))
         expr = "[x^3]_0^2"
-        normalized = CausalScriptInputParser.normalize(expr)
+        normalized = CoherentInputParser.normalize(expr)
         print(f"Normalized: {normalized}")
         
         # Check structure (roughly)
@@ -17,7 +17,7 @@ class TestIntegralSteps:
 
     def test_brackets_evaluation(self):
         expr = "[x^3]_0^2"
-        normalized = CausalScriptInputParser.normalize(expr)
+        normalized = CoherentInputParser.normalize(expr)
         
         engine = SymbolicEngine()
         result = engine.evaluate(normalized, {})
@@ -26,7 +26,7 @@ class TestIntegralSteps:
     def test_brackets_variable_inference(self):
         # [t^2]_1^2 -> ((t**2).subs(t, 2) - (t**2).subs(t, 1))
         expr = "[t^2]_1^2"
-        normalized = CausalScriptInputParser.normalize(expr)
+        normalized = CoherentInputParser.normalize(expr)
         
         engine = SymbolicEngine()
         result = engine.evaluate(normalized, {})

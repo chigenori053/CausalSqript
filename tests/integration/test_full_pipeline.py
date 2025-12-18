@@ -1,19 +1,19 @@
 from __future__ import annotations
 from typing import Any
 
-from causalscript.core.causal import CausalEngine
-from causalscript.core.evaluator import Evaluator, SymbolicEvaluationEngine
-from causalscript.core.fuzzy.types import FuzzyLabel, FuzzyResult, FuzzyScore
-from causalscript.core.knowledge_registry import KnowledgeNode
-from causalscript.core.learning_logger import LearningLogger
-from causalscript.core.parser import Parser
-from causalscript.core.learning_logger import LearningLogger
-from causalscript.core.parser import Parser
-from causalscript.core.symbolic_engine import SymbolicEngine
-from causalscript.core.core_runtime import CoreRuntime
-from causalscript.core.computation_engine import ComputationEngine
-from causalscript.core.validation_engine import ValidationEngine
-from causalscript.core.hint_engine import HintEngine
+from coherent.logic import CausalEngine
+from coherent.engine.evaluator import Evaluator, SymbolicEvaluationEngine
+from coherent.engine.fuzzy.types import FuzzyLabel, FuzzyResult, FuzzyScore
+from coherent.engine.knowledge_registry import KnowledgeNode
+from coherent.engine.learning_logger import LearningLogger
+from coherent.engine.parser import Parser
+from coherent.engine.learning_logger import LearningLogger
+from coherent.engine.parser import Parser
+from coherent.engine.symbolic_engine import SymbolicEngine
+from coherent.engine.core_runtime import CoreRuntime
+from coherent.engine.computation_engine import ComputationEngine
+from coherent.engine.validation_engine import ValidationEngine
+from coherent.engine.hint_engine import HintEngine
 
 
 class StubKnowledgeRegistry:

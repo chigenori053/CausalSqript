@@ -3,12 +3,12 @@ import pytest
 import numpy as np
 from unittest.mock import MagicMock, patch
 
-from causalscript.core.optical.vectorizer import FeatureExtractor
-from causalscript.core.optical.layer import OpticalInterferenceEngine
-from causalscript.core.ast_nodes import Add, Sym, Int, Mul
-from causalscript.core.reasoning.generator import HypothesisGenerator
-from causalscript.core.validation_engine import ValidationEngine
-from causalscript.core.decision_theory import DecisionEngine, DecisionConfig
+from coherent.optical.vectorizer import FeatureExtractor
+from coherent.optical.layer import OpticalInterferenceEngine
+from coherent.engine.ast_nodes import Add, Sym, Int, Mul
+from coherent.engine.reasoning.generator import HypothesisGenerator
+from coherent.engine.validation_engine import ValidationEngine
+from coherent.engine.decision_theory import DecisionEngine, DecisionConfig
 
 class TestOpticalCore:
     def test_feature_extractor_vectorize(self):
@@ -93,7 +93,7 @@ class TestIntegration:
         # mock dep
         # decision_config = DecisionConfig(ambiguity_threshold=0.5)
         # decision_engine = DecisionEngine(decision_config)
-        from causalscript.core.decision_theory import DecisionAction
+        from coherent.engine.decision_theory import DecisionAction
         decision_engine = MagicMock()
         
         fuzzy_judge = MagicMock()

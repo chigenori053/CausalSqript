@@ -1,19 +1,19 @@
 import pytest
 sympy = pytest.importorskip("sympy")
 from pathlib import Path
-from causalscript.core.symbolic_engine import SymbolicEngine
-from causalscript.core.knowledge_registry import KnowledgeRegistry
-from causalscript.core.input_parser import CausalScriptInputParser
+from coherent.engine.symbolic_engine import SymbolicEngine
+from coherent.engine.knowledge_registry import KnowledgeRegistry
+from coherent.engine.input_parser import CoherentInputParser
 
 class TestStrictRules:
     def setup_method(self):
         self.engine = SymbolicEngine()
-        self.registry = KnowledgeRegistry(Path("causalscript/core/knowledge"), self.engine)
+        self.registry = KnowledgeRegistry(Path("coherent/engine/knowledge"), self.engine)
 
     def test_subtraction_match(self):
         # 2^3 - 0 should match ARITH-CALC-SUB, not ARITH-CALC-ADD
         expr = "2^3 - 0"
-        normalized = CausalScriptInputParser.normalize(expr)
+        normalized = CoherentInputParser.normalize(expr)
         # normalized is "2**3 - 0"
         
         # We need to ensure the result is 8 for the rule to match "after"

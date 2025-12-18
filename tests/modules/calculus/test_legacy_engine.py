@@ -1,8 +1,8 @@
 import pytest
 
-from causalscript.core.symbolic_engine import SymbolicEngine
-from causalscript.core.computation_engine import ComputationEngine
-from causalscript.core.calculus_engine import CalculusEngine
+from coherent.engine.symbolic_engine import SymbolicEngine
+from coherent.engine.computation_engine import ComputationEngine
+from coherent.engine.calculus_engine import CalculusEngine
 
 
 @pytest.fixture

@@ -1,6 +1,6 @@
 import pytest
 
-from causalscript.core.stats_engine import StatsEngine
+from coherent.engine.stats_engine import StatsEngine
 
 
 @pytest.fixture

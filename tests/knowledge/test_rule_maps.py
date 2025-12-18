@@ -1,13 +1,13 @@
 import pytest
 sympy = pytest.importorskip("sympy")
 from pathlib import Path
-from causalscript.core.symbolic_engine import SymbolicEngine
-from causalscript.core.knowledge_registry import KnowledgeRegistry
+from coherent.engine.symbolic_engine import SymbolicEngine
+from coherent.engine.knowledge_registry import KnowledgeRegistry
 
 class TestRuleMaps:
     def setup_method(self):
         self.engine = SymbolicEngine()
-        self.registry = KnowledgeRegistry(Path("causalscript/core/knowledge"), self.engine)
+        self.registry = KnowledgeRegistry(Path("coherent/engine/knowledge"), self.engine)
 
     def test_map_loading(self):
         # Verify maps are loaded

@@ -2,9 +2,9 @@ import pytest
 import torch
 import numpy as np
 from unittest.mock import MagicMock
-from causalscript.core.optical.layer import OpticalInterferenceEngine
-from causalscript.core.optical.trainer import OpticalTrainer
-from causalscript.core.optical.vectorizer import FeatureExtractor
+from coherent.optical.layer import OpticalInterferenceEngine
+from coherent.optical.trainer import OpticalTrainer
+from coherent.optical.vectorizer import FeatureExtractor
 
 @pytest.fixture
 def trainer_and_model():
