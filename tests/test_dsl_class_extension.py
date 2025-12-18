@@ -24,7 +24,7 @@ def test_parser_supports_named_problem_and_variable_sub_problem():
     assert problem.name == "SolverA"
     assert problem.expr == "(x + 1)**2"
 
-    sub = program.body[1]
+    sub = program.body[0].steps[0] 
     assert isinstance(sub, ast.SubProblemNode)
     assert sub.target_variable == "disc"
     assert sub.expr == "b**2 - 4*a*c"

@@ -24,23 +24,28 @@ end: x^2 + 3*x + 2
 """
     program = Parser(source).parse()
     assert isinstance(program, ast.ProgramNode)
-    assert len(program.body) == 4
+    program = Parser(source).parse()
+    assert isinstance(program, ast.ProgramNode)
+    assert len(program.body) == 1  # 1 ProblemNode
 
     problem = program.body[0]
     assert isinstance(problem, ast.ProblemNode)
     assert problem.expr == "(x + 1)*(x + 2)"
     assert problem.line == 3
-
-    step = program.body[1]
+    
+    # Check steps (including explain)
+    assert len(problem.steps) == 3
+    
+    step = problem.steps[0]
     assert isinstance(step, ast.StepNode)
     assert step.step_id == "1"
     assert step.expr == "x**2 + 3*x + 2"
 
-    explain = program.body[2]
+    explain = problem.steps[1]
     assert isinstance(explain, ast.ExplainNode)
     assert explain.text == "expansion"
 
-    end = program.body[3]
+    end = problem.end_node
     assert isinstance(end, ast.EndNode)
     assert end.expr == "x**2 + 3*x + 2"
 
@@ -75,7 +80,9 @@ step: x^2-2xy+y^2
 end: 1
 """
     program = Parser(source).parse()
-    step_node = program.body[1]
+    program = Parser(source).parse()
+    problem = program.body[0]
+    step_node = problem.steps[0]
     # Just generic check that it parses
     assert step_node
 
@@ -83,7 +90,9 @@ end: 1
 def test_parser_handles_negative_coefficients():
     source = "problem: 1\nstep: x^2 - 2*x*y + y^2\nend: 1"
     program = Parser(source).parse()
-    step_node = program.body[1]
+    source = "problem: 1\nstep: x^2 - 2*x*y + y^2\nend: 1"
+    program = Parser(source).parse()
+    step_node = program.body[0].steps[0]
     assert step_node.expr == "x**2 - 2*x*y + y**2"
 
 # --- Tests from v2.5 ---
@@ -142,8 +151,13 @@ end: 30
 """
     parser = Parser(source)
     program = parser.parse()
-    assert any(isinstance(node, PrepareNode) for node in program.body)
-    prepare_node = next(node for node in program.body if isinstance(node, PrepareNode))
+    parser = Parser(source)
+    program = parser.parse()
+    # PrepareNode is now inside ProblemNode
+    assert any(isinstance(node, ProblemNode) and node.prepare for node in program.body)
+    problem = program.body[0]
+    prepare_node = problem.prepare
+    assert isinstance(prepare_node, PrepareNode)
     assert prepare_node.statements == ["x = 10", "y = 20"]
 
 
@@ -155,7 +169,9 @@ step: x
 end: x
 """
     program = Parser(source).parse()
-    prepare_node = next(node for node in program.body if isinstance(node, PrepareNode))
+    program = Parser(source).parse()
+    prepare_node = program.body[0].prepare
+    assert isinstance(prepare_node, PrepareNode)
     assert prepare_node.kind == "expr"
     assert prepare_node.expr == "temp = 5"
 
@@ -166,7 +182,7 @@ step: x
 end: x
 """
     program = Parser(auto_source).parse()
-    prepare_node = next(node for node in program.body if isinstance(node, PrepareNode))
+    prepare_node = program.body[0].prepare
     assert prepare_node.kind == "auto"
 
 
@@ -178,7 +194,7 @@ step: x
 end: x
 """
     program = Parser(source).parse()
-    prepare_node = next(node for node in program.body if isinstance(node, PrepareNode))
+    prepare_node = program.body[0].prepare
     assert prepare_node.kind == "directive"
     assert prepare_node.directive == "normalize(mode=strict)"
 

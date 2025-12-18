@@ -64,7 +64,7 @@ class PolynomialEvaluator:
         return not self._fatal_error and self._state == "END"
 
     def _handle_problem(self, node: ast.ProblemNode) -> None:
-        if self._state != "INIT":
+        if self._state not in ("INIT", "END"):
             exc = MissingProblemError("Problem already defined.")
             self._fatal(
                 phase="problem",
@@ -72,6 +72,10 @@ class PolynomialEvaluator:
                 rendered=f"Duplicate problem: {node.expr}",
                 exc=exc,
             )
+        # Reset state for new problem
+        self._state = "INIT"
+        self._current_normalized = None # Reset for new problem
+
         normalized = self._normalize_expr(node.expr, phase="problem")
         self._current_normalized = normalized
         self._current_problem_expr = node.expr
@@ -83,6 +87,17 @@ class PolynomialEvaluator:
             status="ok",
         )
         self._state = "PROBLEM_SET"
+        
+        # Traverse hierarchical steps
+        for step in node.steps:
+            if self._fatal_error: break
+            if isinstance(step, ast.StepNode):
+                self._handle_step(step)
+            elif isinstance(step, ast.EndNode):
+                self._handle_end(step)
+            elif isinstance(step, ast.ExplainNode):
+                self._handle_explain(step)
+            # Ignore other nodes like SubProblem for now as PolynomialEvaluator is simple
 
     def _handle_step(self, node: ast.StepNode) -> None:
         if self._state not in {"PROBLEM_SET", "STEP_RUN"}:

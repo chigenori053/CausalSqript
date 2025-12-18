@@ -103,17 +103,14 @@ end: done
 
 
 def test_evaluator_fatal_when_step_precedes_problem():
-    program = _program_from_source(
-        """
+    with pytest.raises(DslSyntaxError):
+        _program_from_source(
+            """
 step: 3
 problem: 1 + 1
 end: done
 """
-    )
-    logger = LearningLogger()
-    evaluator = Evaluator(program, _engine(), learning_logger=logger)
-    with pytest.raises(MissingProblemError):
-        evaluator.run()
+        )
 
 
 class DummyEncoder:

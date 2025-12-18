@@ -137,6 +137,10 @@ class ProblemNode(Node):
     name: str | None = None
     mode: str | None = None  # arithmetic, algebra, calculus, etc.
     ast: object | None = None
+    # Hierarchical fields
+    prepare: PrepareNode | None = None
+    steps: List[Union[StepNode, SubProblemNode, ExplainNode, EndNode]] = field(default_factory=list)
+    end_node: EndNode | None = None
 
 
 @dataclass
@@ -147,6 +151,7 @@ class StepNode(Node):
     ast: object | None = None
     before_expr: str | None = None
     note: str | None = None
+    sub_steps: List['StepNode'] = field(default_factory=list)
 
 
 @dataclass

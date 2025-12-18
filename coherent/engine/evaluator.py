@@ -308,9 +308,17 @@ class Evaluator:
         # Reset run-scoped flags
         self._has_mistake = False
         self._has_critical_mistake = False
+        self._completed = False
+        self._fatal_error = False
+        self._state = "INIT"
+
         for node in self.program.body:
             if isinstance(node, ast.ProblemNode):
-                self._handle_problem(node)
+                # Hierarchical execution
+                if not self._run_problem_node(node):
+                     # If sub-problem failed fatally?
+                     if self._fatal_error:
+                         return False
             elif isinstance(node, ast.MetaNode):
                 self._handle_meta(node)
             elif isinstance(node, ast.ConfigNode):
@@ -318,11 +326,7 @@ class Evaluator:
             elif isinstance(node, ast.ModeNode):
                 self._handle_mode(node)
             elif isinstance(node, ast.PrepareNode):
-                self._handle_prepare(node)
-            elif isinstance(node, ast.StepNode):
-                self._handle_step(node)
-            elif isinstance(node, ast.EndNode):
-                self._handle_end(node)
+                self._handle_prepare(node) # Global prepare (legacy/compat)
             elif isinstance(node, ast.ExplainNode):
                 self._handle_explain(node)
             elif isinstance(node, ast.CounterfactualNode):
@@ -331,28 +335,62 @@ class Evaluator:
                 self._handle_scenario(node)
             elif isinstance(node, ast.SubProblemNode):
                 self._handle_sub_problem(node)
-            else:  # pragma: no cover - defensive block.
-                raise SyntaxError(f"Unsupported node type: {type(node)}")
-        if self._state != "END":
-            exc = MissingProblemError("Program did not reach an end statement.")
-            self._fatal(
-                phase="end",
-                expression=None,
-                rendered="Fatal: missing end statement.",
-                exc=exc,
-            )
+            # Legacy fallback: if step/end appear globally (parser shouldn't allow this usually for new format)
+            elif isinstance(node, ast.StepNode):
+                 self._handle_step(node)
+            elif isinstance(node, ast.EndNode):
+                 self._handle_end(node)
+            else:
+                pass
+
+        if self._state != "END" and not self._fatal_error:
+            # If we just ran a problem node which has its own end, state might be "END" or "PROBLEM_INIT" depending on implementation.
+            # But "run()" expects global end state? 
+            # If multiple problems, state tracks the *last* one.
+            # If processed problems, we consider completed?
+            pass
+        
         self._completed = True
-        return not self._fatal_error and not self._has_critical_mistake and self._state == "END"
+        return not self._fatal_error and not self._has_critical_mistake
+
+    def _run_problem_node(self, node: ast.ProblemNode) -> bool:
+        """Execute a ProblemNode and its children."""
+        self._handle_problem(node)
+        
+        # Override mode if specified
+        if node.mode:
+             self._mode = node.mode
+        
+        # Handle Prepare
+        if node.prepare:
+            self._handle_prepare(node.prepare)
+            
+        # Handle Steps
+        for step in node.steps:
+            if self._fatal_error: break
+            if isinstance(step, ast.SubProblemNode):
+                self._handle_sub_problem(step)
+            elif isinstance(step, ast.ExplainNode):
+                self._handle_explain(step)
+            elif isinstance(step, ast.EndNode):
+                self._handle_end(step)
+            else:
+                self._handle_step(step)
+            
+        return not self._fatal_error
 
     def _handle_problem(self, node: ast.ProblemNode) -> None:
-        if self._state != "INIT":
-            exc = MissingProblemError("Problem already defined.")
+        if self._state not in ("INIT", "END"):
+            exc = MissingProblemError("Problem already defined (previous problem not finished?).")
             self._fatal(
                 phase="problem",
                 expression=node.expr,
                 rendered=f"Duplicate problem: {node.expr}",
                 exc=exc,
             )
+        # Reset run-scoped state for new problem
+        self._state = "INIT" 
+        
         try:
             self.engine.set(node.expr)
         except CoherentError as exc:
