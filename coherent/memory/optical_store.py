@@ -46,6 +46,12 @@ class OpticalFrequencyStore(VectorStoreBase):
         """
         tensor = torch.tensor(vectors, dtype=torch.float32)
         
+        if tensor.shape[1] < self.vector_dim:
+            padding = torch.zeros((tensor.shape[0], self.vector_dim - tensor.shape[1]))
+            tensor = torch.cat([tensor, padding], dim=1)
+        elif tensor.shape[1] > self.vector_dim:
+            tensor = tensor[:, :self.vector_dim]
+
         # Normalize amplitude to unit sphere to ensure stable interference
         tensor = torch.nn.functional.normalize(tensor, p=2, dim=1)
         
