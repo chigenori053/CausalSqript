@@ -37,6 +37,10 @@ from coherent.engine.tensor.converter import TensorConverter
 from coherent.engine.tensor.embeddings import EmbeddingRegistry
 from coherent.engine.reasoning.agent import ReasoningAgent
 
+# Language Processing
+from coherent.engine.language.semantic_parser import RuleBasedSemanticParser
+from coherent.engine.language.semantic_types import TaskType
+
 import torch
 import numpy as np
 import matplotlib.pyplot as plt
@@ -90,8 +94,6 @@ def get_system():
     hint_engine = HintEngine(comp_engine)
     
     # 5. Core Runtime
-    # Note: LearningLogger is typically per-session, but we need a base runtime for the Agent.
-    # The Agent might use its own internal logger or the runtime's.
     logger = LearningLogger() 
     runtime = CoreRuntime(
         comp_engine, 
@@ -122,6 +124,9 @@ def get_system():
     from coherent.engine.classifier import ExpressionClassifier
     classifier = ExpressionClassifier(sym_engine)
     formatter = LaTeXFormatter(sym_engine, classifier)
+    
+    # 9. Language Parser
+    semantic_parser = RuleBasedSemanticParser()
 
     return {
         "runtime": runtime,
@@ -132,7 +137,8 @@ def get_system():
         "tensor_engine": tensor_engine,
         "val_engine": val_engine,
         "hint_engine": hint_engine,
-        "sym_engine": sym_engine
+        "sym_engine": sym_engine,
+        "semantic_parser": semantic_parser
     }
 
 # Load System
@@ -140,26 +146,20 @@ system = get_system()
 runtime = system["runtime"]
 agent = system["agent"]
 formatter = system["formatter"]
+parser = system["semantic_parser"]
 
 # --- Helper Functions ---
 
 def render_optical_memory(agent):
     """Visualizes the Optical Memory state as a heatmap."""
     try:
-        # Access the optical memory tensor
-        # Path: agent.generator.optical_layer.optical_memory (complex tensor) or similar
-        # Based on file read: agent.trainer.model refers to generator.optical_layer
-        optical_mem = agent.trainer.model.optical_memory # [Capacity, Dim]
+        optical_mem = agent.trainer.model.optical_memory 
         
         if optical_mem is None:
             return None
             
-        # Get Magnitude (Energy) for visualization
-        # Clone and detach to avoid interfering with gradients
         energy = torch.abs(optical_mem).detach().cpu().numpy()
         
-        # We only show the first N slots that are non-zero/active to keep it readable
-        # Or simple show top 50 rows
         display_rows = min(50, energy.shape[0])
         display_data = energy[:display_rows, :]
         
@@ -190,14 +190,12 @@ with st.sidebar:
         index=0
     )
     
-    # Update Runtime Config dynamically
     runtime.hint_persona = st.selectbox("Hint Persona", ["balanced", "sparta", "support"])
     runtime.validation_engine.fuzzy_judge.decision_engine.config.strategy = strategy_name
     
     st.divider()
     st.markdown("**System Status**")
     st.markdown(f"🧠 **Knowledge Rules**: {len(system['knowledge_registry'].nodes)}")
-    # Assuming we can inspect memory capacity
     mem_cap = agent.trainer.model.memory_capacity
     st.markdown(f"💡 **Optical Capacity**: {mem_cap}")
 
@@ -212,7 +210,7 @@ with tab_solver:
     col1, col2 = st.columns([1, 1])
     
     with col1:
-        problem_input = st.text_input("Enter Math Problem", value="(x - 2y)^2")
+        user_input = st.text_input("Enter Problem (Natural Language)", value="Solve (x - 2y)^2")
         solve_btn = st.button("Thinking Step", type="primary")
         
         reset_btn = st.button("Reset Problem")
@@ -221,44 +219,65 @@ with tab_solver:
              st.rerun()
 
     with col2:
-        # Mini Visualization of Current State
-        current_display = problem_input
-        if st.session_state.agent_memory:
-            current_display = st.session_state.agent_memory[-1]['state']
+        # NLP Understanding Display
+        current_display = ""
+        try:
+            if user_input:
+                ir = parser.parse(user_input)
+                st.caption(f"🤖 **Detected Intent**: `{ir.task.name}` | **Domain**: `{ir.math_domain.name}`")
+                
+                extracted_math = ir.inputs[0].value if ir.inputs else ""
+                
+                if not st.session_state.agent_memory:
+                     current_display = extracted_math if extracted_math else "(Waiting for valid input...)"
+                else:
+                     current_display = st.session_state.agent_memory[-1]['state']
+        except Exception as e:
+            st.error(f"Semantic Parsing Error: {e}")
+            current_display = "Error"
         
         st.info(f"Current State: `{current_display}`")
 
     if solve_btn:
-        start_state = current_display
+        start_state = None
         
-        # Capture Stdout for "Thought Trace"
-        f = io.StringIO()
-        with redirect_stdout(f):
-            try:
-                hypothesis = agent.think(start_state)
-            except Exception as e:
-                st.error(f"Agent Error: {e}")
-                hypothesis = None
-        
-        thought_log = f.getvalue()
-        
-        if hypothesis:
-            # Update Session State
-            step_record = {
-                "step": len(st.session_state.agent_memory) + 1,
-                "input": start_state,
-                "state": hypothesis.next_expr,
-                "rule": hypothesis.rule_id,
-                "score": hypothesis.score,
-                "explanation": hypothesis.explanation,
-                "log": thought_log
-            }
-            st.session_state.agent_memory.append(step_record)
+        if not st.session_state.agent_memory:
+             ir = parser.parse(user_input)
+             if ir.task != TaskType.SOLVE:
+                 st.warning(f"Currently only SOLVE task is supported. Detected: {ir.task}")
+             elif not ir.inputs:
+                 st.warning("Could not extract a mathematical expression.")
+             else:
+                 start_state = ir.inputs[0].value
         else:
-            st.warning("Agent could not find a confident next step.")
-            st.text(thought_log)
+             start_state = st.session_state.agent_memory[-1]['state']
+             
+        if start_state:
+            f = io.StringIO()
+            with redirect_stdout(f):
+                try:
+                    hypothesis = agent.think(start_state)
+                except Exception as e:
+                    st.error(f"Agent Error: {e}")
+                    hypothesis = None
+            
+            thought_log = f.getvalue()
+            
+            if hypothesis:
+                step_record = {
+                    "step": len(st.session_state.agent_memory) + 1,
+                    "input": start_state,
+                    "state": hypothesis.next_expr,
+                    "rule": hypothesis.rule_id,
+                    "score": hypothesis.score,
+                    "explanation": hypothesis.explanation,
+                    "log": thought_log
+                }
+                st.session_state.agent_memory.append(step_record)
+            else:
+                st.warning("Agent could not find a confident next step.")
+                st.text(thought_log)
 
-    # Display History / Solution Path
     if st.session_state.agent_memory:
         st.divider()
         st.subheader("Solution Path")
@@ -277,7 +296,6 @@ with tab_solver:
                         st.code(step['log'], language="text")
                 st.divider()
 
-    # Optical Visualization
     with st.expander("👁️ Optical Memory State", expanded=True):
         fig = render_optical_memory(agent)
         if fig:
@@ -299,19 +317,17 @@ end: x^2 - 4xy + 4y^2"""
     run_script = st.button("Validate Script", type="primary")
     
     if run_script:
-        # Clear logs
         logger = system['runtime'].learning_logger
         logger.records = [] 
         
         try:
-            parser = Parser(script_input)
-            program = parser.parse()
+            parser_v = Parser(script_input)
+            program = parser_v.parse()
             evaluator = Evaluator(program, system['runtime'], learning_logger=logger)
             success = evaluator.run()
             
             logs = logger.to_list()
             
-            # Simple Render
             for record in logs:
                 if record['phase'] == 'step':
                     status_icon = "✅" if record.get('status') == 'ok' else "❌"
@@ -331,21 +347,17 @@ with tab_train:
     st.markdown("Train the agent's intuition (Optical Memory) from successful past experiences.")
 
     if st.button("Extract & Train from Logs"):
-        # Use logs from Validation runs or System runs
-        # We need a shared log store or merge them. 
-        # For prototype, we use the Runtime's logger which Script Tester uses.
-        
         logger = system['runtime'].learning_logger
         logs = logger.to_list()
         
         training_samples = []
-        rule_ids = agent.generator.rule_ids # We need the mapping of rule_id to index
+        rule_ids = agent.generator.rule_ids
         
         for record in logs:
             if record.get('status') == 'ok' and record.get('phase') == 'step':
                 expr = record.get('expression')
                 meta = record.get('meta', {})
-                rule_node = meta.get('rule', None) # Rule object
+                rule_node = meta.get('rule', None) 
                 
                 if expr and rule_node:
                     rid = rule_node.get('id')
