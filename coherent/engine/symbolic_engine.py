@@ -716,7 +716,7 @@ class SymbolicEngine:
                 # Also handle symbol objects if keys are strings
                 subs[_sympy.Symbol(k)] = val_internal
 
-            new_internal = internal.subs(subs)
+            new_internal = internal.xreplace(subs)
             return str(new_internal)
         except Exception:
             return expr

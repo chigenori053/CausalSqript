@@ -479,7 +479,12 @@ class KnowledgeRegistry:
             try:
                 # Generate 'after' candidate
                 str_bindings = {k: str(v) for k, v in bind_before.items()}
-                candidate = self.engine.substitute(node.pattern_after, str_bindings)
+                if node.category == "calculation":
+                    # Evaluate the expression for calculation rules
+                    filled_before = self.engine.substitute(node.pattern_before, str_bindings)
+                    candidate = self.engine.simplify(filled_before)
+                else:
+                    candidate = self.engine.substitute(node.pattern_after, str_bindings)
                 suggestions.append(candidate)
             except Exception:
                 pass
@@ -536,7 +541,11 @@ class KnowledgeRegistry:
             try:
                 # Generate 'after' candidate
                 str_bindings = {k: str(v) for k, v in bind_before.items()}
-                candidate = self.engine.substitute(node.pattern_after, str_bindings)
+                if node.category == "calculation":
+                    filled_before = self.engine.substitute(node.pattern_before, str_bindings)
+                    candidate = self.engine.simplify(filled_before)
+                else:
+                    candidate = self.engine.substitute(node.pattern_after, str_bindings)
                 matches.append((node, candidate))
             except Exception:
                 pass
@@ -575,6 +584,11 @@ class KnowledgeRegistry:
             
             # 3. Substitute
             str_bindings = {k: str(v) for k, v in bind_before.items()}
+            
+            if node.category == "calculation":
+                filled_before = self.engine.substitute(node.pattern_before, str_bindings)
+                return self.engine.simplify(filled_before)
+
             candidate = self.engine.substitute(node.pattern_after, str_bindings)
             return candidate
         except Exception:

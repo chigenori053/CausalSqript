@@ -5,6 +5,7 @@
   pattern_after: "(a + b) * x"
   description: "同類項をまとめる"
   priority: 65
+  condition: "is_numeric(x) == False"
 
 - id: ALG-OP-002
   domain: algebra
@@ -12,4 +13,5 @@
   pattern_before: "x + x"
   pattern_after: "2 * x"
   description: "同類項の加算"
-  priority: 65
+  priority: 70
+  condition: "is_numeric(x) == False"
