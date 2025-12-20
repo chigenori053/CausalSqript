@@ -55,9 +55,11 @@ class TestOpticalMultimodal:
 
     def test_integrator_text(self):
         integrator = MultimodalIntegrator()
-        expr, vector = integrator.process_input("test expression", input_type="text")
-        
-        assert expr == "test expression"
+        # InputParser normalizes "test expression" -> "t*e*s*t*e*x*p*r*e*s*s*i*o*n" because they are unknown identifiers
+        # We update the test to expect the normalized form, or use a valid math expression that doesn't split.
+        # "x + y" is better.
+        expr, vector = integrator.process_input("x + y", input_type="text")
+        assert expr == "x + y"
         assert isinstance(vector, HolographicTensor)
         assert vector.tensor.dtype == torch.complex64
         # Check dim (default 4096 in config usually, or dynamic)

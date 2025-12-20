@@ -7,6 +7,7 @@ from .text_encoder import TransformerEncoder, HolographicTextEncoder
 from .vision_encoder import VisionEncoder, HolographicVisionEncoder
 from .binding import HolographicBinding
 from coherent.engine.holographic.data_types import HolographicTensor
+from coherent.engine.input_parser import CoherentInputParser
 
 class MultimodalIntegrator:
     """
@@ -49,7 +50,7 @@ class MultimodalIntegrator:
                 # For now let's say expression is None unless we have OCR
                 
             elif input_type == "text":
-                expression = input_data
+                expression = CoherentInputParser.normalize(input_data)
                 holographic_vector = self.text_encoder.encode(expression)
                 
             elif input_type == "multimodal":

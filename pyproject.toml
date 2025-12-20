@@ -25,3 +25,6 @@ coherent = "coherent.cli.main:main"
 pythonpath = [
     ".",
 ]
+
+[tool.setuptools]
+packages = ["coherent"]

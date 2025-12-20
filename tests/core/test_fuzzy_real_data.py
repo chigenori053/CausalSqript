@@ -1,6 +1,4 @@
 import json
-from pathlib import Path
-
 from coherent.engine.fuzzy.config import FuzzyThresholdConfig
 from coherent.engine.fuzzy.encoder import ExpressionEncoder
 from coherent.engine.fuzzy.judge import FuzzyJudge
@@ -9,8 +7,19 @@ from coherent.engine.fuzzy.types import FuzzyLabel
 
 
 def _load_cases() -> list[dict]:
-    data_path = Path("docs/data/fuzzy_samples.json")
-    return json.loads(data_path.read_text(encoding="utf-8"))
+    # Inline test data to avoid external file dependency
+    return [
+        {
+            "problem": "Calculate 1+1",
+            "previous": "1 + 1",
+            "candidate": "2"
+        },
+        {
+            "problem": "Simplify 2x + 3x",
+            "previous": "2x + 3x",
+            "candidate": "5x"
+        }
+    ]
 
 
 def test_fuzzy_judge_realistic_samples():

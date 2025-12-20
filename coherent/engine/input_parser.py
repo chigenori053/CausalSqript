@@ -285,6 +285,8 @@ class CoherentInputParser:
                 result.append("pi")
             elif token == "∫":
                 result.append("∫")
+            elif token == "·":
+                result.append("*")
             else:
                 result.append(token)
         return result

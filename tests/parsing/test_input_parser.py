@@ -24,6 +24,9 @@ from coherent.engine.input_parser import CoherentInputParser
         ("1 7/15", "(1 + 7/15)"),
         # Test Case 8: Mixed number inside expression
         ("2 + 1(1/2)", "2 + (1 + 1/2)"),
+        # Test Case 9: Unicode multiplication dot
+        ("3 · 4", "3*4"),
+        ("x · y", "x*y"),
     ],
 )
 def test_normalize_implicit_multiplication(input_expr: str, expected_output: str):

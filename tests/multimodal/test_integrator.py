@@ -10,9 +10,9 @@ def test_integrator_text_flow():
     
     expr, vec = integrator.process_input("x^2 + 1", input_type="text")
     
-    assert expr == "x^2 + 1"
+    assert expr == "x**2 + 1"
     assert vec == [0.1, 0.2, 0.3]
-    integrator.text_encoder.encode.assert_called_with("x^2 + 1")
+    integrator.text_encoder.encode.assert_called_with("x**2 + 1")
 
 def test_integrator_vision_flow():
     integrator = MultimodalIntegrator()
