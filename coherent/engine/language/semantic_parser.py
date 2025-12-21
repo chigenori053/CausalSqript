@@ -44,7 +44,7 @@ class RuleBasedSemanticParser(ISemanticParser):
         
         self._domain_indicators = {
             MathDomain.CALCULUS: [r"derive", r"integrate", r"derivative", r"integral", r"limit", r"diff", r"微分", r"積分", r"極限"],
-            MathDomain.ALGEBRA: [r"solve for", r"simplify", r"factor", r"polynomial", r"equation", r"方程式", r"因数分解", r"展開"],
+            MathDomain.ALGEBRA: [r"solve for", r"simplify", r"factorize", r"factor", r"polynomial", r"equation", r"方程式", r"因数分解", r"展開"],
             MathDomain.LINEAR_ALGEBRA: [r"matrix", r"vector", r"eigen", r"determinant", r"行列", r"ベクトル", r"固有値"],
             MathDomain.GEOMETRY: [r"area", r"volume", r"angle", r"triangle", r"circle", r"面積", r"体積", r"角度", r"三角形", r"円"]
         }
@@ -185,12 +185,31 @@ class RuleBasedSemanticParser(ISemanticParser):
         all_keywords.sort(key=len, reverse=True)
         
         for kw in all_keywords:
-            cleaned_for_extraction = re.sub(kw, " ", cleaned_for_extraction, flags=re.IGNORECASE)
+            # Use word boundary if keyword starts/ends with alphanumeric
+            pattern = kw
+            if re.match(r'^[a-zA-Z0-9]', kw):
+                pattern = r'\b' + pattern
+            if re.search(r'[a-zA-Z0-9]$', kw):
+                pattern = pattern + r'\b'
+            cleaned_for_extraction = re.sub(pattern, " ", cleaned_for_extraction, flags=re.IGNORECASE)
         
-        # Remove domain keywords too? Maybe
+        # Remove domain keywords too
         all_domain = [p for patterns in self._domain_indicators.values() for p in patterns]
+        # Sort by length
+        all_domain.sort(key=len, reverse=True)
+        
         for kw in all_domain:
-             cleaned_for_extraction = re.sub(kw, " ", cleaned_for_extraction, flags=re.IGNORECASE)
+             pattern = kw
+             if re.match(r'^[a-zA-Z0-9]', kw):
+                pattern = r'\b' + pattern
+             if re.search(r'[a-zA-Z0-9]$', kw):
+                pattern = pattern + r'\b'
+             cleaned_for_extraction = re.sub(pattern, " ", cleaned_for_extraction, flags=re.IGNORECASE)
+
+        # Japanese specific cleanup: Remove all Hiragana and common punctuation
+        # This handles particles like を, は, and auxiliary endings like ください left over.
+        # Range \u3040-\u309F is Hiragana. \u3000-\u303F is CJK Symbols and Punctuation.
+        cleaned_for_extraction = re.sub(r'[\u3040-\u309F\u3000-\u303F]+', ' ', cleaned_for_extraction)
 
         # What remains should be the math. 
         # " x^2 + 2*x + 1 = 0 "
@@ -201,21 +220,5 @@ class RuleBasedSemanticParser(ISemanticParser):
         if len(extracted) > 0:
              candidates.append(extracted)
              
-        # "cleaned_text" is the text with math removed. But here we just removed keywords.
-        # Ideally we return (Original_minus_math, [math]).
-        # But _extract_math_candidates signature is (cleaned_text, extracted_math).
-        # We removed keywords to find math.
-        # So cleaned_text should resemble original but without the math? 
-        # Actually the usage in parse says: `_detect_domain(cleaned_text + " " + " ".join(extracted_math))`
-        # So cleaned_text is only used for domain detection and goal inference.
-        # AND extracted_math is used for inputs.
-        
-        # If we just extracted the residue as math, `cleaned_text` (without math) would be just the keywords.
-        # That's fine for Goal inference.
-        
-        # So:
-        # candidates = [extracted]
-        # cleaned_text = text.replace(extracted, "")
-        
         return text.replace(extracted, " "), candidates
 

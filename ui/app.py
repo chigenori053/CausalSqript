@@ -41,6 +41,13 @@ from coherent.engine.reasoning.agent import ReasoningAgent
 from coherent.engine.language.semantic_parser import RuleBasedSemanticParser
 from coherent.engine.language.semantic_types import TaskType
 
+# [NEW] Action Architecture
+from coherent.core.action import Action
+from coherent.core.action_types import ActionType
+from coherent.core.state import State
+from coherent.core.executor import ActionExecutor
+from coherent.core.tracer import Tracer
+
 import torch
 import numpy as np
 import matplotlib.pyplot as plt
@@ -60,6 +67,10 @@ if "logs" not in st.session_state:
     st.session_state.logs = []
 if "agent_memory" not in st.session_state:
     st.session_state.agent_memory = []
+if "tracer" not in st.session_state:
+    st.session_state.tracer = Tracer()
+if "lm_state" not in st.session_state:
+    st.session_state.lm_state = None
 
 # --- System Initialization ---
 
@@ -138,8 +149,10 @@ def get_system():
         "val_engine": val_engine,
         "hint_engine": hint_engine,
         "sym_engine": sym_engine,
-        "semantic_parser": semantic_parser
+        "semantic_parser": semantic_parser,
+        "executor": ActionExecutor(runtime) # Stateless executor
     }
+
 
 # Load System
 system = get_system()
@@ -147,6 +160,7 @@ runtime = system["runtime"]
 agent = system["agent"]
 formatter = system["formatter"]
 parser = system["semantic_parser"]
+executor = system["executor"]
 
 # --- Helper Functions ---
 
@@ -211,89 +225,123 @@ with tab_solver:
     
     with col1:
         user_input = st.text_input("Enter Problem (Natural Language)", value="Solve (x - 2y)^2")
-        solve_btn = st.button("Thinking Step", type="primary")
         
-        reset_btn = st.button("Reset Problem")
-        if reset_btn:
-             st.session_state.agent_memory = []
+        c_btn1, c_btn2 = st.columns(2)
+        with c_btn1:
+            start_btn = st.button("Start/Reset", type="primary")
+        with c_btn2:
+            step_btn = st.button("Next Step")
+            
+        if start_btn:
+             # Reset Logic
+             st.session_state.tracer = Tracer() # Fresh Tracer
+             ep_id = st.session_state.tracer.start_episode(user_input)
+             
+             # Parse and Init State
+             try:
+                 ir = parser.parse(user_input)
+                 if ir.task == TaskType.SOLVE and ir.inputs:
+                     start_expr = ir.inputs[0].value
+                     st.session_state.lm_state = State(
+                        task_goal=ir.task,
+                        initial_inputs=ir.inputs,
+                        current_expression=start_expr
+                     )
+                     # Sync Runtime
+                     runtime.set(start_expr)
+                     st.toast(f"Episode Started: {ep_id}")
+                 else:
+                     st.error("Could not extract expression for SOLVE task.")
+                     st.session_state.lm_state = None
+             except Exception as e:
+                 st.error(f"Parse Error: {e}")
+                 st.session_state.lm_state = None
+             
+             # Rerun to update view
              st.rerun()
 
     with col2:
         # NLP Understanding Display
-        current_display = ""
-        try:
-            if user_input:
-                ir = parser.parse(user_input)
-                st.caption(f"🤖 **Detected Intent**: `{ir.task.name}` | **Domain**: `{ir.math_domain.name}`")
-                
-                extracted_math = ir.inputs[0].value if ir.inputs else ""
-                
-                if not st.session_state.agent_memory:
-                     current_display = extracted_math if extracted_math else "(Waiting for valid input...)"
-                else:
-                     current_display = st.session_state.agent_memory[-1]['state']
-        except Exception as e:
-            st.error(f"Semantic Parsing Error: {e}")
-            current_display = "Error"
-        
-        st.info(f"Current State: `{current_display}`")
-
-    if solve_btn:
-        start_state = None
-        
-        if not st.session_state.agent_memory:
-             ir = parser.parse(user_input)
-             if ir.task != TaskType.SOLVE:
-                 st.warning(f"Currently only SOLVE task is supported. Detected: {ir.task}")
-             elif not ir.inputs:
-                 st.warning("Could not extract a mathematical expression.")
-             else:
-                 start_state = ir.inputs[0].value
+        if st.session_state.lm_state:
+             current_expr = st.session_state.lm_state.current_expression
+             status = st.session_state.lm_state.status
+             st.info(f"**Current State**: `{current_expr}`\n\n**Status**: `{status}`")
         else:
-             start_state = st.session_state.agent_memory[-1]['state']
-             
-        if start_state:
-            f = io.StringIO()
-            with redirect_stdout(f):
-                try:
-                    hypothesis = agent.think(start_state)
-                except Exception as e:
-                    st.error(f"Agent Error: {e}")
-                    hypothesis = None
-            
-            thought_log = f.getvalue()
-            
-            if hypothesis:
-                step_record = {
-                    "step": len(st.session_state.agent_memory) + 1,
-                    "input": start_state,
-                    "state": hypothesis.next_expr,
-                    "rule": hypothesis.rule_id,
-                    "score": hypothesis.score,
-                    "explanation": hypothesis.explanation,
-                    "log": thought_log
-                }
-                st.session_state.agent_memory.append(step_record)
-            else:
-                st.warning("Agent could not find a confident next step.")
-                st.text(thought_log)
+             st.caption("(Initialize to start)")
+             if user_input:
+                 ir = parser.parse(user_input)
+                 st.caption(f"Detected: {ir.task.name} / {ir.math_domain.name}")
 
-    if st.session_state.agent_memory:
-        st.divider()
-        st.subheader("Solution Path")
+    # --- ACTION EXECUTION LOGIC ---
+    if step_btn and st.session_state.lm_state:
+        state = st.session_state.lm_state
         
-        for i, step in enumerate(st.session_state.agent_memory):
+        if state.status == "SOLVED":
+            st.warning("Problem is already solved!")
+        else:
+            with st.spinner("Thinking..."):
+                # 1. ACT
+                action = agent.act(state)
+                
+                # 2. EXECUTE
+                result = executor.execute(action, state)
+                
+                # 3. TRACE
+                st.session_state.tracer.log_step(state, action, result)
+                
+                if result.get("valid"):
+                    st.success(f"Action: {action.name} -> Valid")
+                else:
+                    st.warning(f"Action: {action.name} -> Invalid")
+
+            st.rerun()
+
+    # --- TRACER VISUALIZATION ---
+    if st.session_state.tracer._current_episode:
+        st.divider()
+        st.subheader("Episode Trace (Reasoning History)")
+        
+        steps = st.session_state.tracer._current_episode.steps
+        for i, step in enumerate(steps):
             with st.container():
                 st.markdown(f"#### Step {i+1}")
                 c1, c2 = st.columns([2, 1])
+                
+                act_data = step.action
+                res_data = step.result
+                state_snap = step.state_snapshot
+                
                 with c1:
-                    st.latex(formatter.format_expression(step['state']))
-                    st.caption(step['explanation'])
+                    # Before -> After
+                    st.caption("Transformation")
+                    before = state_snap.get('expression')
+                    # Result details usually have 'evaluated' or we check next step's state?
+                    # Result payload depends on executor.
+                    # Executor result for APPLY_RULE usually is runtime check structure.
+                    
+                    st.latex(formatter.format_expression(before))
+                    st.markdown("⬇️")
+                    
+                    # If valid, the state updated. But step record stores snapshot BEFORE.
+                    # We can show the 'inputs.next_state' from action as expected
+                    target = act_data.get('inputs', {}).get('next_state', '???')
+                    st.latex(formatter.format_expression(target))
+
+                    explanation = act_data.get('inputs', {}).get('explanation', '')
+                    if explanation:
+                        st.caption(f"🗣️ {explanation}")
+
                 with c2:
-                    st.markdown(f"**Rule**: `{step['rule']}`")
-                    st.markdown(f"**Confidence**: `{step['score']:.2f}`")
-                    with st.expander("Machine Thoughts"):
-                        st.code(step['log'], language="text")
+                    st.markdown(f"**Action**: `{act_data.get('type')}`")
+                    st.markdown(f"**Name**: `{act_data.get('name')}`")
+                    st.markdown(f"**Confidence**: `{act_data.get('confidence', 1.0):.2f}`")
+                    
+                    status = "✅ Valid" if res_data.get('valid') else "❌ Invalid"
+                    st.markdown(f"**Result**: {status}")
+                    
+                    with st.expander("Evidence"):
+                        st.json(act_data.get('evidence', {}))
+                
                 st.divider()
 
     with st.expander("👁️ Optical Memory State", expanded=True):

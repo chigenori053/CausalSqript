@@ -21,6 +21,11 @@ from coherent.memory.ast_generalizer import ASTGeneralizer
 from coherent.memory.experience_manager import ExperienceManager
 import json
 
+# [NEW] Action Architecture Imports
+from coherent.core.action import Action
+from coherent.core.action_types import ActionType
+from coherent.core.state import State
+
 class ReasoningAgent:
     """
     Autonomous Reasoning Agent (System 2) for Coherent.
@@ -191,3 +196,50 @@ class ReasoningAgent:
         """Generates a natural language explanation for the hypothesis."""
         rule_desc = hypothesis.metadata.get("rule_description", "Use a rule")
         hypothesis.explanation = f"{rule_desc} applied to transform the expression."
+
+    def act(self, state: State) -> Action:
+        """
+        Predicts the next best Action given the current State.
+        Standard interface for the Reasoning LM.
+        """
+        # 1. Extract context from State
+        current_expr = state.current_expression
+        
+        # 2. Use existing 'think' logic to generate a Hypothesis
+        # 'think' returns a Hypothesis(rule_id, next_expr, score, explanation)
+        hypothesis = self.think(current_expr)
+        
+        # 3. Map Hypothesis -> Action
+        if hypothesis:
+            # If Hypothesis is from memory recall
+            if hypothesis.metadata.get("source") == "memory":
+                 # We could map this to RECALL action if we want to separate "Search" from "Apply"
+                 # But sticking to P0 plan: Output the concrete APPLY_RULE action derived from memory.
+                 # or if we strictly follow "Reasoning Agent loops", maybe RECALL is implicit.
+                 pass
+
+            return Action(
+                type=ActionType.APPLY_RULE,
+                name=hypothesis.rule_id,
+                inputs={
+                    "target": hypothesis.current_expr,
+                    "next_state": hypothesis.next_expr,
+                    "explanation": hypothesis.explanation
+                },
+                confidence=hypothesis.score,
+                evidence={
+                    "rule_id": hypothesis.rule_id,
+                    "hypothesis_id": hypothesis.id,
+                    "metadata": hypothesis.metadata
+                }
+            )
+        else:
+            # If no hypothesis found, what to do?
+            # Maybe ASK for help or REJECT?
+            # For now, if we are stuck, we might return a low confidence REJECT or STOP.
+            return Action(
+                type=ActionType.REJECT,
+                name="no_solution_found",
+                confidence=0.0,
+                evidence={"reason": "Search exhausted with no candidates."}
+            )

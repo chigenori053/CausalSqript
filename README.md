@@ -1,221 +1,122 @@
-# COHERENT
+# COHERENT System 2.0
 
 > **Intelligence in Phase.**
 > Where Waves Become Logic.
 
-COHERENTは、光学干渉演算（Optical Interference Calculation）を基盤とした次世代の論理推論システムです。
+COHERENTは、**光学干渉メモリ（Optical Holographic Memory）** と **アクション予測型推論（Action-Based Reasoning）** を融合させた次世代の論理推論システム（Reasoning LM）です。単なる「次のトークン」の予測ではなく、「次のアクション（思考のステップ）」を予測し、実行し、検証する自律的なループを実現します。
 
-## Why Coherent?
-- **Process-first**: emphasizes intermediate working steps over final answers.
-- **AI-assisted**: pairs human reasoning with SymbolicAI for explanation and transformation of expressions.
-- **Reproducible**: identical inputs always re-create the same execution trace.
-- **Lightweight**: Python 3.12 stack with modular components for education and research.
+COHERENT is a next-generation **Reasoning LM** system that fuses **Optical Holographic Memory** with **Action-Based Reasoning**. Instead of merely predicting the "next token", it predicts, executes, and validates the "next action (reasoning step)", enabling an autonomous self-improving loop.
 
-## Architecture Snapshot
-| Layer | Key Modules | Purpose |
-|-------|-------------|---------|
-| DSL Core | `coherent/core/parser.py`, `coherent/core/ast_nodes.py` | Parse Coherent syntax into AST structures. |
-| Execution | `coherent/core/evaluator.py`, `coherent/core/core_runtime.py` | Orchestrate reasoning steps, validation, and extensions. |
-| SymbolicAI | `coherent/core/symbolic_engine.py` | SymPy-based expression manipulation and equivalency checking. |
-| Knowledge | `coherent/core/knowledge_registry.py` | Rule-based prediction, semantic linking, and concept mapping. |
-| Validation | `coherent/core/validation_engine.py` | Integrated pipeline: Symbolic -> Fuzzy -> Decision. |
-| Decision | `coherent/core/decision_theory.py` | Strategic judgment (Accept/Review/Reject) based on utility/regret. |
-| Heuristics | `coherent/core/heuristics.py` | Detect common misconceptions (e.g., Freshman's Dream). |
-| Causal | `coherent/core/causal/` | Diagnosis, graph construction, and fix suggestion. |
-| Interfaces | JupyterLab / Streamlit | Provide interactive teaching and demo surfaces. |
+---
 
-Reference structure and full requirements live in `docs/`.
+## Key Features / 主な特徴
 
-## DSL Glimpse
-```text
-# Coherent DSL v2.5 example
-meta:
-    id: lesson_01
-    topic: arithmetic
-config:
-    causal: true
-    fuzzy-threshold: 0.6
-problem: (3 + 5) * 4
-prepare:
-    - a = 3 + 5
-    - b = a * 4
-step:
-    before: (3 + 5) * 4
-    after: 8 * 4
-    note: simplify addition
-step:
-    before: 8 * 4
-    after: 32
-end: 32
-counterfactual:
-    assume:
-        a: 10
-    expect: a * 3 + 2
-```
-Expected output:
-```
-Config: {'causal': True, 'fuzzy-threshold': 0.6}
-Problem: (3 + 5) * 4
-Prepare: a = 3 + 5
-Prepare: b = a * 4
-Step (unnamed): 8 * 4
-Step (unnamed): 32
-End: 32
-```
+### 1. Optical Holographic Memory (光学干渉メモリ)
+脳の海馬のような長期的かつ連想的な記憶を実現します。
+- **Resonance Recall**: 入力情報（波）と記憶（波）の干渉強度（Resonance）によって、最も関連性の高い過去の経験を瞬時に想起します。
+- **Encoding**: テキスト、画像、音声を複素数テンソル（Holographic Tensor）にエンコードし、同一空間で扱います。
 
-## CLI Usage
-- Run a `.mlang` file: `python main.py --file coherent/edu/examples/pythagorean.mlang`
-- Run an inline snippet: `python main.py -c "problem: 1 + 1\nend: 2"`
-- Switch to the polynomial evaluator: `python main.py --mode polynomial --file coherent/edu/examples/polynomial_arithmetic.mlang`
-- Run the built-in Hello World self-test: `python main.py --hello-world-test`
-- Simulate a counterfactual: `python main.py --file coherent/edu/examples/counterfactual_demo.mlang --counterfactual '{"phase": "step", "index": 2, "expression": "8 * 4"}'`
-- Run the Edu demo runner: `python -m coherent.edu.demo.edu_demo_runner basic_arithmetic`
-- Run the Pro CLI: `python -m coherent.pro.cli -c "problem: (x + 1) * (x + 2)\nend: (x + 1) * (x + 2)"`
-- Run the Pro demo runner: `python -m coherent.pro.demo_runner counterfactual`
-- Run the Edu CLI by scenario name (see `coherent/edu/cli/scenarios/config.json`): `python -m coherent.edu.cli.main --scenario arithmetic`
-- Run the Pro CLI scenario: `python -m coherent.pro.cli.main --mode causal --scenario basic` (`coherent/pro/cli/scenarios/config.json`)
-- Run the Demo CLI minimal scenario: `python -m demo.demo_cli --scenario minimal` (`demo/scenarios/config.json`)
+Acts like a hippocampus for long-term associative memory.
+- **Resonance Recall**: Instantly recalls relevant past experiences based on the interference intensity (resonance) between input waves and stored waves.
+- **Encoding**: Encodes text, images, and audio into complex-valued Holographic Tensors within a unified vector space.
 
-The CLI prints rendered text for every `problem`, `step`, `explain`, and `end` clause. Symbolic mode verifies steps with SymPy and the knowledge registry, while polynomial mode expands expressions before comparing them.  
-エラーが発生した場合は、収集した LearningLogger レコードを元に因果推論エンジンが解析され、`== Causal Analysis ==` セクションとして推定原因と修正候補ステップが追加表示されます。
+### 2. Reasoning Agent (推論エージェント)
+System 2（熟慮的思考）を担当するエージェントです。
+- **Action-Based**: 思考を「ツールの使用」「ルールの適用」「検索」などの離散的な**Action**として出力します。
+- **Self-Correction**: 実行結果（Execution Result）を観察し、自身の仮説を修正しながらゴールを目指します。
 
-### Scenario Configuration Files
-Each CLI keeps scenario definitions under its `scenarios/config.json`. These JSON files list `file`, optional `mode` (`symbolic` / `polynomial` / `causal`), and `counterfactual` payloads that `--scenario` picks up automatically:
+The agent responsible for System 2 (deliberate thinking).
+- **Action-Based**: Outputs thoughts as discrete **Actions** (e.g., using a tool, applying a rule, searching memory).
+- **Self-Correction**: Observes execution results and iteratively corrects its hypotheses to reach the goal.
 
-- Edu: `coherent/edu/cli/scenarios/config.json`
-- Pro: `coherent/pro/cli/scenarios/config.json`
-- Demo: `demo/scenarios/config.json`
+### 3. Traceability & Learning (追跡可能性と学習)
+- **Tracer**: すべての思考ステップ（State → Action → Result）をエピソードとして記録します。
+- **Feedback Loop**: 成功したエピソードは光学メモリにフィードバックされ、「直感（System 1）」として定着します。
 
-You can add new entries to those files to expose additional `.mlang` programs without changing the CLI flags used by CI.
+- **Tracer**: Records every reasoning step (State → Action → Result) as an episode.
+- **Feedback Loop**: Successful episodes are fed back into the optical memory, solidifying them as "intuition" (System 1).
 
-## Pro Edition
-プロフェッショナル向け CLI / デモについては `README_PRO.md` を参照。`python -m coherent.pro.cli ...` で直接呼び出せます。
+---
 
-## Learning Logs & Notebook Demo
-Coherent now ships with a lightweight `LearningLogger` that records `problem → step → end` events (including rule IDs supplied by the knowledge base) as JSON. You can pass the logger into an evaluator:
+## Architecture / アーキテクチャ
 
-```python
-from pathlib import Path
+| Component | Responsibility (役割) |
+|-----------|-----------------------|
+| **Layer A: Interface** | **Semantic Parser**: 自然言語を解析し、構造化されたタスク（Semantic IR）に変換します。<br>(Parses natural language into structured Semantic IR.) |
+| **Layer B: Core** | **Action Executor**: アクションを実行し、システムの状態（State）を更新します。<br>**Tracer**: 実行ログを記録します。<br>(Executes actions, updates state, and logs episodes.) |
+| **Layer C: Physics** | **Optical Engine**: 複素数演算による記憶の想起と干渉シミュレーション。<br>(Simulates memory recall and interference using complex arithmetic.) |
 
-from coherent.core.learning_logger import LearningLogger
-from coherent.core.parser import Parser
-from coherent.core.evaluator import Evaluator, SymbolicEvaluationEngine
-from coherent.core.symbolic_engine import SymbolicEngine
-from coherent.core.knowledge_registry import KnowledgeRegistry
+---
 
-source = """problem: (2 + 3) * 4
-step: 5 * 4
-end: 20"""
+## Installation / インストール
 
-logger = LearningLogger()
-program = Parser(source).parse()
-symbolic_engine = SymbolicEngine()
-registry = KnowledgeRegistry(Path("coherent/core/knowledge"), symbolic_engine)
-engine = SymbolicEvaluationEngine(symbolic_engine, registry)
-Evaluator(program, engine=engine, learning_logger=logger).run()
-print(logger.to_list())
-```
+**Requirements**: Python 3.12+
 
-An executable walkthrough lives in `notebooks/Learning_Log_Demo.ipynb`, which illustrates how to import the repo modules inside Jupyter and display the collected JSON using `IPython.display.JSON`.
-
-To render the same records as compact human-readable messages (useful for notebooks or debugging), use `coherent.core.log_formatter`:
-
-```python
-from coherent.core.log_formatter import format_records
-
-for line in format_records(logger.to_list()):
-    print(line)
-```
-Output:
-```
-problem: (3 + 5) * 4
-step1: 8 * 4
-step2: 32
-end: 32
-```
-
-Looking for quick notebook inputs? `notebooks/sample_programs.py` ships multiple reusable MathLang snippets:
-
-```python
-from notebooks.sample_programs import get_sample_program
-
-sample = get_sample_program("binomial_square")
-print(sample.description)
-source = sample.source
-```
-
-## Notebook Cell Magic
-Jupyter 上で DSL をそのままタイプして実行したい場合は、専用マジックを読み込んで `problem:`/`step:`/`end:` を直接入力できます。
-
-1. `%load_ext coherent.tools.notebook_magic`
-2. DSL セルの先頭に `%%mathlang [--mode symbolic|polynomial] [--no-meta]`
-3. 以降の行に DSL を記述して実行
-
-例:
-```text
-%load_ext coherent.tools.notebook_magic
-
-%%mathlang
-problem: (x - y)^2
-step1: (x - y)(x - y)
-step: x^2 -2xy +y^2
-end: done
-```
-`x^2` や `2xy`、`(x - y)(x - y)` のような人間向け表記は自動で `x**2` / `2*x*y` / `(x - y)*(x - y)` に正規化され、SyntaxError を気にせず Notebook 上で MathLang を検証できます。
-
-## Causal Analysis in Notebooks
-Notebook から因果推論を呼び出す場合は、LearningLogger の記録を `coherent.core.causal.integration.run_causal_analysis` に渡すだけです。
-
-```python
-from coherent.core.causal.integration import run_causal_analysis
-from coherent.core.causal.graph_utils import graph_to_text
-
-records = logger.to_list()
-engine, report = run_causal_analysis(records, include_graph=True)
-report["explanations"]  # 各エラーの原因サマリ
-
-# 修正候補（例: step ノードID）
-# Heuristic Intensification により、"Freshman's Dream" などの誤用パターンは優先的に提案されます。
-for error_id in report["errors"]:
-    fix_nodes = engine.suggest_fix_candidates(error_id)
-    print(error_id, [node.node_id for node in fix_nodes])
-
-# グラフの簡易表示
-print(graph_to_text(report["graph"]))
-```
-
-`suggest_fix_candidates` は、単純な直前ステップだけでなく、**誤用パターン（例: $(a+b)^n \to a^n+b^n$）** を検出して根本原因を特定・優先順位付けします。
-
-`report["graph"]` にはノード・エッジ情報が入るため、テキスト可視化に加えて Graphviz/DOT ツールへもそのまま渡せます（`coherent.core.causal.graph_utils.graph_to_dot` 参照）。
-
-## Roadmap (Draft)
-1. **Phase 1** – Parser/Evaluator foundation (target: mid Nov 2025)
-2. **Phase 2** – SymbolicAI integration & AST optimization (early Dec 2025)
-3. **Phase 3** – Jupyter UI + learning logs (late Dec 2025)
-4. **Phase 4** – Educational beta release v0.9 (Jan 2026)
-
-## Environment Setup (macOS)
 ```bash
+# Clone repository
+git clone https://github.com/your-org/COHERENT.git
+cd COHERENT
+
+# Setup environment using uv
 uv init
 uv python install 3.12
-uv python pin 3.12
-uv venv
-uv add sympy pyyaml pytest
+uv sync
 ```
 
-## Contribution Basics
-- Branching: `main` (stable), `dev`, `feature/*`
-- Commits: `feat(parser): implement expression parsing`
-- Tests: run `pytest` before PRs
-- Documentation: update both `README.md` and specifications in `docs/` when altering scope or design.
+---
 
-### Release Checklist (Snapshot)
-- [ ] Parser/Evaluator tests green (`pytest`).
-- [ ] CLI usage in `README` matches `main.py` behavior for `--file`, `--code`, `--mode`, and `--hello-world-test`.
-- [ ] Examples under `edu/examples/` (Edu) and `pro/examples/` (Pro) execute without modification.
-- [ ] Symbolic mode verifies steps and prints rendered output.
-- [ ] Polynomial mode expands polynomials and reports matching steps.
-- [ ] `--hello-world-test` prints the expected Hello World trace.
-- [ ] Specification updated for any CLI or directory layout changes.
+## Usage / 使用方法
 
-For coordination guidelines, see `Agent.md`.
+### 1. Streamlit UI (Recommended)
+リアルタイムで推論プロセスを可視化できるインタラクティブなUIです。
+
+Interactive UI to visualize the reasoning process in real-time.
+
+```bash
+uv run streamlit run ui/app.py
+```
+- **Agent Solver**: 自然言語で問題を解かせることができます。（例: "Solve x^2 - 4 = 0", "Factorize x^2 + 5x + 6"）
+- スクリーンショット通りに思考のステップ（Action）が表示されます。
+
+- **Agent Solver**: Solve problems using natural language.
+- Visualize reasoning steps (Actions) as seen in screenshots.
+
+### 2. CLI / Script
+スクリプトから直接エージェントを呼び出すことも可能です。
+
+You can also invoke the agent directly from scripts.
+
+```python
+from ui.app import get_system
+from coherent.core.state import State
+from coherent.core.tracer import Tracer
+
+# Initialize System
+system = get_system()
+agent = system["agent"]
+executor = system["executor"]
+tracer = Tracer()
+
+# Start Episode
+expression = "x^2 - 4 = 0"
+state = State.from_string(expression)
+tracer.start_episode(expression)
+
+# Reasoning Loop
+action = agent.act(state)
+result = executor.execute(action, state)
+tracer.log_step(state, action, result)
+
+print(f"Action: {action.name}, Valid: {result['valid']}")
+```
+
+---
+
+## Contribution / 貢献
+
+COHERENTは現在、**Phase 2 (Coding Agent Integration)** に向けて開発進行中です。
+
+COHERENT is currently under development towards **Phase 2 (Coding Agent Integration)**.
+
+- **Tests**: `uv run pytest`
+- **Docs**: `docs/` ディレクトリ配下の仕様書を参照してください。(See `docs/` for specifications.)
