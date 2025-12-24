@@ -138,25 +138,10 @@ class ValidationEngine:
             except Exception:
                 pass
         
-        # --- 2. Symbolic Check ---
-        is_valid = False
-        is_partial = False
-        # We can reuse the extensive logic from CoreRuntime here or simplify.
-        # For now, let's use the symbolic engine's is_equiv.
-        try:
-             is_valid = self.symbolic_engine.is_equiv(before_eval, after_eval, context=context)
-        except Exception:
-             is_valid = False
-             
-        # TODO: Add partial calculation logic if needed (moved from CoreRuntime)
-        
-        # If valid, we are potentially done, unless we want to "Review" valid steps (e.g. redundancy)
-        if is_valid:
-            return {
-                "valid": True,
-                "status": "correct",
-                "details": {}
-            }
+        # --- 2. Symbolic Check (Legacy - Removed to favor Optical/Parallel Flow) ---
+        # The symbolic check is now handled via the Parallel Validator in Step 4.
+        pass
+
 
         # --- 3. Fuzzy Perception ---
         fuzzy_score = 0.0
@@ -183,89 +168,56 @@ class ValidationEngine:
             except Exception:
                 pass
         
-        # --- 4. Strategic Decision ---
-        action = DecisionAction.REJECT
-        decision_meta = {}
+        # --- 4. Strategic Decision (Optical + Sympy Parallel) ---
         
-        if self.decision_engine and self.fuzzy_judge:
-             # Calculate Ambiguity using Optical Layer
+        def symbolic_check_wrapper(b, a):
+             # Simple wrapper for parallel execution
+             # In real usage, might need to handle context, but kept simple here
              try:
-                 # Vectorize 'before' (Mock/Simplify as parser access is limited here)
-                 # Ideally: vector = self.vectorizer.vectorize(parsed_ast)
-                 # For MVP: Zero vector or simplistic feature from string string?
-                 # self.vectorizer expects AST.
-                 # We will pass a zero vector just to exercise the pipeline (Phase 1)
-                 # In Phase 2/3, we connect real AST.
-                 # For MVP: Zero vector or simplistic feature from string string?
-                 # self.vectorizer expects AST.
-                 # We will pass a zero vector just to exercise the pipeline (Phase 1)
-                 # In Phase 2/3, we connect real AST.
-                 import torch
-                 vec = torch.zeros(64) 
-                 # Use PyTorch forward pass (no predict method)
-                 # Returns (intensity, ambiguity)
-                 with torch.no_grad():
-                     ambiguity = self.optical_layer.get_ambiguity(res)
-             except Exception:
-                 ambiguity = 0.0
+                 return self.symbolic_engine.is_equiv(b, a)
+             except:
+                 return False
 
-             # Use the decision engine to decide based on fuzzy score
-             # We assume DecisionEngine uses 'probability of match' which maps to fuzzy_score
-             action, utility, debug = self.decision_engine.decide(fuzzy_score, ambiguity=ambiguity)
-             decision_meta = {
-                 "utility": utility,
-                 "debug": debug,
-                 "action": action.value
-             }
-        else:
-             # Fallback if no decision engine: Use simple fuzzy threshold or strict
-             # If fuzzy_label is "high" enough, ACCEPT
-             if fuzzy_label in [FuzzyLabel.EXACT, FuzzyLabel.EQUIVALENT, FuzzyLabel.APPROX_EQ, FuzzyLabel.ANALOGOUS]:
-                 action = DecisionAction.ACCEPT
+        if not hasattr(self, 'optical_validator'):
+             from .optical.validator import OpticalValidator
+             self.optical_validator = OpticalValidator()
+
+        # Execute Parallel Validation
+        # 1. Optical (Fast/Heuristic)
+        # 2. Symbolic (Slow/Strict)
+        opt_res, sym_res = self.optical_validator.parallel_validate(before_eval, after_eval, symbolic_check_wrapper)
+        
+        # Decision Logic based on both
+        if opt_res.status == "accept":
+             # Optical is confident -> Trust it (Recall-First)
+             # But if Sympy contradicts?? In MVP we trust Sympy as ground truth if available.
+             # "Review" logic:
+             if not sym_res:
+                 # Optical says Yes, Math says No -> Potential creative leap or Error.
+                 # Mark as Review
+                 return {
+                     "valid": False, 
+                     "status": "review", 
+                     "details": {"reason": "Optical accepted but Symbolic rejected", "optical_score": opt_res.resonance_score}
+                 }
              else:
-                 action = DecisionAction.REJECT
-
-        # --- 5. Result Construction ---
-        result_valid = (action == DecisionAction.ACCEPT)
+                 return {"valid": True, "status": "correct", "details": {"method": "optical_parallel"}}
         
-        # Handling "Review" state
-        # For now, Review -> Valid but with "review" status, or Invalid?
-        # Usually Review means "Correct but needs improvement" or "Incorrect but close".
-        # The prompt says: REVIEW: "惜しい判定。ヒントを出す。" -> Implies might be treated as invalid for progression?
-        # Or Valid but generates a hint.
-        # Let's say: ACCEPT = Valid, REJECT = Invalid.
-        # REVIEW = Invalid (so user stays on step) but with encouraging hint?
-        # OR REVIEW = Valid (proceed) but with warning?
-        # "Mistake" usually blocks progress.
-        # "Review" sounds like "Partial".
-        # Let's map REVIEW to False (Invalid) for now to force user correction, OR True with warning.
-        # "Review" in DecisionTheory often implies "Gather more info" or "Ask user". 
-        # In this context (Education), "Review" likely means "Close, try again (don't fail hard)".
-        # So Valid=False, but Status="review".
+        elif opt_res.status == "review":
+             # Optical is unsure -> Use Sympy
+             if sym_res:
+                 # Symbolic is True -> Project back and confirm
+                 # (Projection logic is inside validator's atom handling usually, here we just use the result)
+                 return {"valid": True, "status": "correct", "details": {"method": "symbolic_fallback"}}
+             else:
+                  return {"valid": False, "status": "mistake", "details": {"reason": "Both rejected or Optical unsure"}}
         
-        if action == DecisionAction.ACCEPT:
-            result_valid = True
-            status = "correct"
-        elif action == DecisionAction.REVIEW:
-            result_valid = False # User must fix it? Or is it a 'pass with warning'?
-            # If we mark it valid=False, the system won't advance.
-            # If we mark it valid=True, the system advances.
-            # "惜しい" means "Almost". Usually you have to fix "Almost".
-            result_valid = False
-            status = "review"
-        else:
-            result_valid = False
-            status = "mistake"
-            
-        return {
-            "valid": result_valid,
-            "status": status,
-            "details": {
-                "fuzzy_score": fuzzy_score,
-                "fuzzy_label": fuzzy_label.value if fuzzy_label else None,
-                "decision": decision_meta
-            }
-        }
+        else: # Reject
+             if sym_res:
+                  # Optical missed it -> Update Memory? (Learning loop - specific to Phase 9)
+                  return {"valid": True, "status": "correct", "details": {"method": "symbolic_rescue"}}
+             else:
+                  return {"valid": False, "status": "mistake", "details": {}}
     
     def check_answer(self, user_expr: str, spec: ExerciseSpec) -> ValidationResult:
         """
