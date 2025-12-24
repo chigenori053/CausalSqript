@@ -60,3 +60,21 @@
   pattern_after: "((a*c + b*d) + (b*c - a*d)*i) / (c**2 + d**2)"
   priority: 80
   condition: "is_numeric(a) and is_numeric(b) and is_numeric(c) and is_numeric(d)"
+
+- id: ALG-CPLX-EULER-IDENTITY
+  domain: algebra
+  category: complex_numbers
+  description: "Euler's Identity"
+  pattern_before: "e**(i*pi) + 1"
+  pattern_after: "0"
+  priority: 100
+  condition: ""
+
+- id: ALG-CPLX-DE-MOIVRE
+  domain: algebra
+  category: complex_numbers
+  description: "De Moivre's Theorem"
+  pattern_before: "(cos(x) + i*sin(x))**n"
+  pattern_after: "cos(n*x) + i*sin(n*x)"
+  priority: 85
+  condition: "is_integer(n)"

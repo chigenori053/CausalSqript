@@ -9,6 +9,7 @@ class MathCategory(Enum):
     LINEAR_ALGEBRA = "linear_algebra"
     STATISTICS = "statistics"
     GEOMETRY = "geometry"
+    COMPLEX = "complex"
     UNKNOWN = "unknown"
 
 @dataclass

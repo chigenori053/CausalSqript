@@ -131,6 +131,9 @@ class CoreRuntime(Engine):
         elif name == "trig":
             from .trig_engine import TrigHelper
             return TrigHelper()
+        elif name == "complex":
+            from coherent.tools.library.complex_domain import ComplexDomain
+            return ComplexDomain()
         else:
             raise ValueError(f"Unknown extension: {name}")
 
@@ -149,6 +152,10 @@ class CoreRuntime(Engine):
     @property
     def trig_helper(self) -> Any:
         return self.get_extension("trig")
+
+    @property
+    def complex_domain(self) -> Any:
+        return self.get_extension("complex")
 
     def _normalize_expression(self, expr: str) -> str:
         """
